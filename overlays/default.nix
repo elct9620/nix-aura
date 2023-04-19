@@ -1,12 +1,18 @@
 self: super:
 with super;
 {
-  common = import ./common.nix { inherit super; };
+  auraCommon = import ./common.nix { inherit super; };
+  auraRuby = import ./ruby.nix { inherit super; };
+  auraGo = import ./go.nix { inherit super; };
+  auraNode = import ./node.nix { inherit super; };
 
   aura = with self; buildEnv {
-    name = "nix-aura";
+    name = "aura-full";
     paths = [
-      common
+      auraCommon
+      auraRuby
+      auraGo
+      auraNode
     ];
   };
 }
