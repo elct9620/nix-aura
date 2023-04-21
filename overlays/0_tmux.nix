@@ -11,7 +11,6 @@ in
 
   tmuxWithConfig = symlinkJoin {
     name = "tmuxWithConfig";
-    buildInputs = [ makeWrapper ];
     paths = [
       wrappedTmux
       tmux
