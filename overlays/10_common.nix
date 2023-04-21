@@ -8,7 +8,7 @@ with super;
      coreutils
      git
      htop
-     tmux
+     tmuxWithConfig
      zsh
    ];
  };
