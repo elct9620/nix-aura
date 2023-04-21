@@ -8,6 +8,7 @@ with super;
      coreutils
      git
      htop
+     reattach-to-user-namespace
      tmuxWithConfig
      zsh
    ];
