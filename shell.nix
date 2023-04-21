@@ -2,10 +2,5 @@
 with pkgs;
 
 mkShell {
-  packages = [
-    git
-    tmux
-    vim
-    coreutils
-  ];
+  packages = [ auraFull ];
 }

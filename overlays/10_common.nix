@@ -10,6 +10,7 @@ with super;
      htop
      reattach-to-user-namespace
      tmuxWithConfig
+     vim
      zsh
    ];
  };
