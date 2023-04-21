@@ -19,7 +19,11 @@
           inherit overlays;
         };
       in {
-        packages.default = pkgs.auraFull;
+        packages = {
+          inherit pkgs;
+          default = pkgs.auraFull;
+        };
+
         devShells.default = import ./shell.nix { inherit pkgs; };
       }
     );
