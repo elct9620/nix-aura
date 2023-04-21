@@ -6,18 +6,20 @@
   };
 
   outputs = { self, nixpkgs, flake-utils }:
-    {
-      overlays = import ./overlays;
-    }
-    //
     flake-utils.lib.eachDefaultSystem (system:
-      let pkgs = import nixpkgs {
-        inherit system;
+      let
+        overlays =
+          [] ++
+          map
+            (name: import (./overlays + "/${name}"))
+            (builtins.attrNames (builtins.readDir ./overlays));
 
-        overlays = [ self.overlays ];
-      };
+        pkgs = import nixpkgs {
+          inherit system;
+          inherit overlays;
+        };
       in {
-        packages.default = pkgs.aura;
+        packages.default = pkgs.auraFull;
         devShells.default = import ./shell.nix { inherit pkgs; };
       }
     );
