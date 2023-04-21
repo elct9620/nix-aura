@@ -1,11 +1,13 @@
 self: super:
 with super;
 {
-  auraGo = buildEnv {
-    name = "aura-go";
+  auraFull = buildEnv {
+    name = "aura-full";
     paths = [
-      go
-      gopls
+      auraCommon
+      auraRuby
+      auraGo
+      auraNode
     ];
   };
 }
