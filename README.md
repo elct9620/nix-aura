@@ -1,7 +1,13 @@
 Nix Aura
 ===
 
-## Configuration
+## Requirement
+
+Install "Nix"
+
+```bash
+sh <(curl -L https://nixos.org/nix/install) --daemon
+```
 
 Add below lines in `~/.config/nix/nix.conf` to enable Nix Flake
 
@@ -27,6 +33,8 @@ ln -s $HOME/.nix-profile/etc/zshrc ~/.zshrc
 > If the `.bashrc` or `.zshrc` already exists, you can use `source $HOME/.nix-profile/etc/bashrc` to load it.
 
 ## Setup Nix for Project
+
+The template include `direnv` config and you can use `direnv allow .` to make environment autolaod.
 
 ### Ruby
 
