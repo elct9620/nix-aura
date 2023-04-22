@@ -29,9 +29,9 @@
             path = ./templates/ruby;
             description = "A simple ruby development environment";
           };
-
-          default = self.templates.ruby;
         };
+
+        defaultTemplate = self.templates.ruby;
 
         devShells.default = import ./shell.nix { inherit pkgs; };
       }
