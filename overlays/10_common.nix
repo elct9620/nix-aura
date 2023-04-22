@@ -12,6 +12,7 @@ with super;
      coreutils
      tmuxWithConfig
      powerline-go
+     zsh-autosuggestions
      # Development
      git
      # System
