@@ -8,3 +8,7 @@ function _update_ps1() {
 if [ "$TERM" != "linux" ] && [ -f "$HOME/.nix-profile/bin/powerline-go" ]; then
     PROMPT_COMMAND="_update_ps1; $PROMPT_COMMAND"
 fi
+
+# Nix
+[ -f $HOME/.nix-profile/share/nix-direnv/direnvrc ] && source $HOME/.nix-profile/share/nix-direnv/direnvrc
+[ -f $HOME/.nix-profile/bin/direnv ] && eval "$(direnv hook bash)"

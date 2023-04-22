@@ -18,6 +18,9 @@ with super;
      # System
      htop
      reattach-to-user-namespace
+     # Nix
+     direnv
+     nix-direnv
    ];
  };
 }

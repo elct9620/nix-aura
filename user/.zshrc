@@ -17,4 +17,9 @@ if [ "$TERM" != "linux" ] && [ -f "$HOME/.nix-profile/bin/powerline-go" ]; then
     install_powerline_precmd
 fi
 
+# Zsh Extension
 [ -f $HOME/.nix-profile/share/zsh-autosuggestions/zsh-autosuggestions.zsh ] && source $HOME/.nix-profile/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+
+# Nix
+[ -f $HOME/.nix-profile/share/nix-direnv/direnvrc ] && source $HOME/.nix-profile/share/nix-direnv/direnvrc
+[ -f $HOME/.nix-profile/bin/direnv ] && eval "$(direnv hook zsh)"
