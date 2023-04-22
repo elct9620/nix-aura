@@ -28,6 +28,7 @@ with super;
       git
       # System
       htop
+      tree
       reattach-to-user-namespace
       # Nix
       direnv
