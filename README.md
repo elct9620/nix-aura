@@ -16,3 +16,12 @@ keep-outputs = true
 ```bash
 nix profile install github:elct9620/nix-aura
 ```
+
+Link `.bashrc` and `.zshrc`
+
+```bash
+ln -s $HOME/.nix-profile/etc/bashrc ~/.bashrc
+ln -s $HOME/.nix-profile/etc/zshrc ~/.zshrc
+```
+
+> If the `.bashrc` or `.zshrc` already exists, you can use `source $HOME/.nix-profile/etc/bashrc` to load it.
