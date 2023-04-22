@@ -29,5 +29,6 @@ bindkey -e
 
 # Auto Complection
 fpath=($HOME/.nix-profile/share/zsh/site-functions $fpath)
+zstyle ':completion:*:*:git:*' script $HOME/.nix-profile/share/git/contrib/completion/git-completion.zsh
 
 autoload -Uz compinit && compinit
