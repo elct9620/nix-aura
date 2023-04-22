@@ -1,12 +1,15 @@
 self: super:
 with super;
 {
-  vim.python = true;
+  vim-full = vim-full.override {
+    guiSupport = false;
+    darwinSupport = true;
+  };
 
   vimWithConfig = buildEnv {
     name = "vimWithConfig";
     paths = [
-      (vim-full.customize {
+      (self.vim-full.customize {
         vimrcConfig.customRC = ''
         " Install vim-plug if we don't already have it
         if empty(glob("$HOME/.vim/autoload/plug.vim"))
