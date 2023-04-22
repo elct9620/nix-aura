@@ -26,3 +26,8 @@ bindkey -e
 # Nix
 [ -f $HOME/.nix-profile/share/nix-direnv/direnvrc ] && source $HOME/.nix-profile/share/nix-direnv/direnvrc
 [ -f $HOME/.nix-profile/bin/direnv ] && eval "$(direnv hook zsh)"
+
+# Auto Complection
+fpath=($HOME/.nix-profile/share/zsh/site-functions $fpath)
+
+autoload -Uz compinit && compinit

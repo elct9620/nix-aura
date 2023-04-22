@@ -23,6 +23,7 @@ with super;
       tmuxWithConfig
       powerline-go
       zsh-autosuggestions
+      zsh-completions
       # Development
       git
       # System
