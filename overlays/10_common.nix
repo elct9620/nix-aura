@@ -5,7 +5,7 @@ with super;
    name = "aura-common";
    paths = [
      # Text
-     bat
+     batWithAlias
      # Editor
      vimWithConfig
      # Shell
