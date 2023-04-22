@@ -10,5 +10,6 @@ if [ "$TERM" != "linux" ] && [ -f "$HOME/.nix-profile/bin/powerline-go" ]; then
 fi
 
 # Nix
+# FIXME: Not work correctly for now
 [ -f $HOME/.nix-profile/share/nix-direnv/direnvrc ] && source $HOME/.nix-profile/share/nix-direnv/direnvrc
 [ -f $HOME/.nix-profile/bin/direnv ] && eval "$(direnv hook bash)"

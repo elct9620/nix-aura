@@ -17,6 +17,9 @@ if [ "$TERM" != "linux" ] && [ -f "$HOME/.nix-profile/bin/powerline-go" ]; then
     install_powerline_precmd
 fi
 
+# Restore Key Binding
+bindkey -e
+
 # Zsh Extension
 [ -f $HOME/.nix-profile/share/zsh-autosuggestions/zsh-autosuggestions.zsh ] && source $HOME/.nix-profile/share/zsh-autosuggestions/zsh-autosuggestions.zsh
 
