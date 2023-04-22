@@ -8,6 +8,7 @@ with super;
       auraRuby
       auraGo
       auraNode
+      auraTemplateCmd
     ];
   };
 }

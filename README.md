@@ -32,4 +32,6 @@ ln -s $HOME/.nix-profile/etc/zshrc ~/.zshrc
 
 ```bash
 nix flake init --template github:elct9620/nix-aura#ruby
+# Or aura-init
+aura-init ruby
 ```
