@@ -20,6 +20,9 @@ if [ "$TERM" != "linux" ] && [ -f "$NIX_PROFILE/bin/powerline-go" ]; then
     install_powerline_precmd
 fi
 
+# Bat
+export BAT_THEME="Solarized (dark)"
+
 # Restore Key Binding
 bindkey -e
 

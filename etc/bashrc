@@ -12,6 +12,9 @@ if [ "$TERM" != "linux" ] && [ -f "$NIX_PROFILE/bin/powerline-go" ]; then
     PROMPT_COMMAND="_update_ps1; $PROMPT_COMMAND"
 fi
 
+# Bat
+export BAT_THEME="Solarized (dark)"
+
 # Completion
 set show-all-if-ambiguous on
 bind 'TAB:menu-complete'
