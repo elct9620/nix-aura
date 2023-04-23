@@ -1,11 +1,14 @@
+NIX_PROFILE=$HOME/.nix-profile
+
+# Powerline
 POWERLINE_MODUES="venv,user,ssh,cwd,perms,git,jobs,exit,root,direnv,nix-shell"
 POWERLINE_OPTIONS="-cwd-mode dironly"
 
 function _update_ps1() {
-    PS1="$($HOME/.nix-profile/bin/powerline-go -jobs $(jobs -p | wc -l) -modules $POWERLINE_MODUES $POWERLINE_OPTIONS)"
+    PS1="$($NIX_PROFILE/bin/powerline-go -jobs $(jobs -p | wc -l) -modules $POWERLINE_MODUES $POWERLINE_OPTIONS)"
 }
 
-if [ "$TERM" != "linux" ] && [ -f "$HOME/.nix-profile/bin/powerline-go" ]; then
+if [ "$TERM" != "linux" ] && [ -f "$NIX_PROFILE/bin/powerline-go" ]; then
     PROMPT_COMMAND="_update_ps1; $PROMPT_COMMAND"
 fi
 
@@ -16,5 +19,5 @@ bind '"\e[Z":complete'
 
 # Nix
 # FIXME: Not work correctly for now
-[ -f $HOME/.nix-profile/share/nix-direnv/direnvrc ] && source $HOME/.nix-profile/share/nix-direnv/direnvrc
-[ -f $HOME/.nix-profile/bin/direnv ] && eval "$(direnv hook bash)"
+[ -f $NIX_PROFILE/share/nix-direnv/direnvrc ] && source $NIX_PROFILE/share/nix-direnv/direnvrc
+[ -f $NIX_PROFILE/bin/direnv ] && eval "$(direnv hook bash)"

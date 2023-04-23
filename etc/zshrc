@@ -1,7 +1,10 @@
+NIX_PROFILE=$HOME/.nix-profile
+
+# Powerline
 POWERLINE_MODUES="venv,user,ssh,cwd,perms,git,jobs,exit,root,direnv,nix-shell"
 
 function powerline_precmd() {
-    PS1="$($HOME/.nix-profile/bin/powerline-go -jobs ${${(%):%j}:-0} -modules $POWERLINE_MODUES -cwd-mode dironly)"
+    PS1="$($NIX_PROFILE/bin/powerline-go -jobs ${${(%):%j}:-0} -modules $POWERLINE_MODUES -cwd-mode dironly)"
 }
 
 function install_powerline_precmd() {
@@ -13,7 +16,7 @@ function install_powerline_precmd() {
   precmd_functions+=(powerline_precmd)
 }
 
-if [ "$TERM" != "linux" ] && [ -f "$HOME/.nix-profile/bin/powerline-go" ]; then
+if [ "$TERM" != "linux" ] && [ -f "$NIX_PROFILE/bin/powerline-go" ]; then
     install_powerline_precmd
 fi
 
@@ -21,16 +24,15 @@ fi
 bindkey -e
 
 # Zsh Extension
-[ -f $HOME/.nix-profile/share/zsh-autosuggestions/zsh-autosuggestions.zsh ] && source $HOME/.nix-profile/share/zsh-autosuggestions/zsh-autosuggestions.zsh
-ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=10,bg=bold,underline'
+[ -f $NIX_PROFILE/share/zsh-autosuggestions/zsh-autosuggestions.zsh ] && source $NIX_PROFILE/share/zsh-autosuggestions/zsh-autosuggestions.zsh
 ZSH_AUTOSUGGEST_STRATEGY=(history completion)
 
 # Nix
-[ -f $HOME/.nix-profile/share/nix-direnv/direnvrc ] && source $HOME/.nix-profile/share/nix-direnv/direnvrc
-[ -f $HOME/.nix-profile/bin/direnv ] && eval "$(direnv hook zsh)"
+[ -f $NIX_PROFILE/share/nix-direnv/direnvrc ] && source $NIX_PROFILE/share/nix-direnv/direnvrc
+[ -f $NIX_PROFILE/bin/direnv ] && eval "$(direnv hook zsh)"
 
 # Auto Complection
-fpath=($HOME/.nix-profile/share/zsh/site-functions $fpath)
-zstyle ':completion:*:*:git:*' script $HOME/.nix-profile/share/git/contrib/completion/git-completion.zsh
+fpath=($NIX_PROFILE/share/zsh/site-functions $fpath)
+[ -f $NIX_PROFILE/share/git/contrib/completion/git-completion.zsh ] && zstyle ':completion:*:*:git:*' script $NIX_PROFILE/share/git/contrib/completion/git-completion.zsh
 
 autoload -Uz compinit && compinit
