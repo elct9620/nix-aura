@@ -22,6 +22,8 @@ bindkey -e
 
 # Zsh Extension
 [ -f $HOME/.nix-profile/share/zsh-autosuggestions/zsh-autosuggestions.zsh ] && source $HOME/.nix-profile/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=10,bg=bold,underline'
+ZSH_AUTOSUGGEST_STRATEGY=(history completion)
 
 # Nix
 [ -f $HOME/.nix-profile/share/nix-direnv/direnvrc ] && source $HOME/.nix-profile/share/nix-direnv/direnvrc
