@@ -9,6 +9,11 @@ if [ "$TERM" != "linux" ] && [ -f "$HOME/.nix-profile/bin/powerline-go" ]; then
     PROMPT_COMMAND="_update_ps1; $PROMPT_COMMAND"
 fi
 
+# Completion
+set show-all-if-ambiguous on
+bind 'TAB:menu-complete'
+bind '"\e[Z":complete'
+
 # Nix
 # FIXME: Not work correctly for now
 [ -f $HOME/.nix-profile/share/nix-direnv/direnvrc ] && source $HOME/.nix-profile/share/nix-direnv/direnvrc
