@@ -9,7 +9,6 @@ with super;
   vimWithConfig = buildEnv {
     name = "vimWithConfig";
     paths = [
-      deno
       (self.vim-full.customize {
         vimrcConfig.customRC = ''
         " Install vim-plug if we don't already have it
