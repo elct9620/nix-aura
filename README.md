@@ -3,6 +3,12 @@ Nix Aura
 
 ## Requirement
 
+* Nix
+* [NerdFonts](https://github.com/ryanoasis/nerd-fonts/tree/master)
+    * I use JetBrians Mono with Ligature
+
+## Install
+
 Install "Nix"
 
 ```bash
@@ -17,7 +23,7 @@ keep-derivations = true
 keep-outputs = true
 ```
 
-## Install
+Enable `nix profile` for default environment
 
 ```bash
 nix profile install github:elct9620/nix-aura
