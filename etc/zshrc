@@ -1,10 +1,11 @@
 NIX_PROFILE=$HOME/.nix-profile
 
 # Powerline
-POWERLINE_MODUES="venv,user,ssh,cwd,perms,git,jobs,exit,root,direnv,nix-shell"
+POWERLINE_MODUES="venv,user,ssh,cwd,nix-shell,perms,git,jobs,exit,root"
+POWERLINE_PRIORITY="root,user,host,ssh,perms,git-branch,git-status,cwd,hg,jobs,exit,cwd-path"
 
 function powerline_precmd() {
-    PS1="$($NIX_PROFILE/bin/powerline-go -jobs ${${(%):%j}:-0} -modules $POWERLINE_MODUES -cwd-mode dironly)"
+  PS1="$($NIX_PROFILE/bin/powerline-go -jobs ${${(%):%j}:-0} -modules $POWERLINE_MODUES -priority $POWERLINE_PRIORITY -cwd-mode dironly -max-width 60)"
 }
 
 function install_powerline_precmd() {
