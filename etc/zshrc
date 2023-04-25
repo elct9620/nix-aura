@@ -29,6 +29,7 @@ bindkey -e
 
 # Zsh Extension
 [ -f $NIX_PROFILE/share/zsh-autosuggestions/zsh-autosuggestions.zsh ] && source $NIX_PROFILE/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=10"
 ZSH_AUTOSUGGEST_STRATEGY=(history completion)
 
 # Nix
