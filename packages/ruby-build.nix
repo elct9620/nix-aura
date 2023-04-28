@@ -15,6 +15,13 @@ stdenv.mkDerivation rec {
     sha256 = "sha256-mU9EG0IoW/UTHvBkncZiwsFQC59OOD/j1Xh3t87ijSA=";
   };
 
+  nativeBuildInputs = [
+      pkg-config
+      libyaml
+      readline
+      gmp
+  ];
+
   installPhase = ''
     BIN_PATH="$out/bin"
     SHARE_PATH="$out/share/ruby-build"

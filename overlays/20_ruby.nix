@@ -6,10 +6,6 @@ with super;
     paths = [
       rbenv
       ruby-build
-      pkg-config
-      libyaml
-      readline
-      gmp
     ];
   };
 }

@@ -21,6 +21,7 @@
       in {
         packages = {
           inherit pkgs;
+          ruby-build = pkgs.ruby-build;
           default = pkgs.auraFull;
         };
 
