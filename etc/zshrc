@@ -44,3 +44,7 @@ fpath=($NIX_PROFILE/share/zsh/site-functions $fpath)
 [ -f $NIX_PROFILE/share/git/contrib/completion/git-completion.zsh ] && zstyle ':completion:*:*:git:*' script $NIX_PROFILE/share/git/contrib/completion/git-completion.zsh
 
 autoload -Uz compinit && compinit
+
+# History
+setopt HIST_FIND_NO_DUPS
+setopt INC_APPEND_HISTORY
