@@ -4,7 +4,12 @@ with super;
   auraRuby = buildEnv {
     name = "aura-ruby";
     paths = [
-      ruby_3_2
+      rbenv
+      ruby-build
+      pkg-config
+      libyaml
+      readline
+      gmp
     ];
   };
 }

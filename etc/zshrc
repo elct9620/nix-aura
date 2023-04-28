@@ -32,6 +32,9 @@ bindkey -e
 ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=10"
 ZSH_AUTOSUGGEST_STRATEGY=(history completion)
 
+# Development
+[ $(command -v rbenv) ] && eval "$(rbenv init -)"
+
 # Nix
 [ -f $NIX_PROFILE/share/nix-direnv/direnvrc ] && source $NIX_PROFILE/share/nix-direnv/direnvrc
 [ -f $NIX_PROFILE/bin/direnv ] && eval "$(direnv hook zsh)"
