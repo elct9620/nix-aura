@@ -35,6 +35,11 @@
           description = "A simple ruby development environment";
         };
 
+        go = {
+          path = ./templates/go;
+          description = "A simple go development environment";
+        };
+
         default = self.templates.ruby;
       };
     };
