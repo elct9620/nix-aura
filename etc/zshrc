@@ -24,6 +24,9 @@ fi
 # Bat
 export BAT_THEME="Solarized (dark)"
 
+# GPG Config
+export GPG_TTY=$(tty)
+
 # Restore Key Binding
 bindkey -e
 
