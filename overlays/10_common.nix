@@ -26,6 +26,7 @@ with super;
       zsh-completions
       # Development
       git
+      cloudflared
       # System
       htop
       tree
