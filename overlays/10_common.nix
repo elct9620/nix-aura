@@ -28,6 +28,8 @@ with super;
       git
       cloudflared
       terraform
+      # Tools
+      hugo
       # System
       htop
       tree
