@@ -27,10 +27,13 @@ with super;
       # Development
       git
       cloudflared
+      terraform
       # System
       htop
       tree
       reattach-to-user-namespace
+      # Utils
+      inetutils
       # Nix
       direnv
       nix-direnv

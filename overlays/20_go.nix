@@ -27,6 +27,7 @@ with super;
       gopls
       gotools
       gotags
+      golangci-lint
     ];
   };
 }
