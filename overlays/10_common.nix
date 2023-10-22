@@ -28,6 +28,9 @@ with super;
       git
       cloudflared
       terraform
+      awscli
+      aws-sam-cli
+      vault
       # Tools
       hugo
       # System
