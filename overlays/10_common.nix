@@ -25,6 +25,7 @@ with super;
       zsh-autosuggestions
       zsh-completions
       # Development
+      pkg-config
       git
       cloudflared
       terraform
