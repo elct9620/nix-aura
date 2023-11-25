@@ -22,7 +22,14 @@ stdenv.mkDerivation rec {
       gmp
   ];
 
+  phases = [
+    "unpackPhase"
+    "installPhase"
+  ];
+
   installPhase = ''
+    set -e
+
     BIN_PATH="$out/bin"
     SHARE_PATH="$out/share/ruby-build"
 
