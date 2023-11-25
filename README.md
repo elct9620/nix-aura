@@ -38,6 +38,26 @@ ln -s $HOME/.nix-profile/etc/zshrc ~/.zshrc
 
 > If the `.bashrc` or `.zshrc` already exists, you can use `source $HOME/.nix-profile/etc/bashrc` to load it.
 
+## Upgrade
+
+Find installed profile
+
+```bash
+$ nix profile list
+
+Index:              0
+Flake attribute:    packages.x86_64-darwin.default
+Original flake URL: git+file:///Users/elct9620/Workspace/nix/nix-aura
+Locked flake URL:   git+file:///Users/elct9620/Workspace/nix/nix-aura
+Store paths:        /nix/store/nm5bl6w9dqn9m6wvghdgbxpsjsw299b9-aura-full
+```
+
+Upgrade profile via specify index
+
+```bash
+nix profile upgrade 0
+```
+
 ## Usage
 
 ### rbenv
