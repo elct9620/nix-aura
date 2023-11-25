@@ -25,3 +25,5 @@ bind '"\e[Z":complete'
 # FIXME: Not work correctly for now
 [ -f $NIX_PROFILE/share/nix-direnv/direnvrc ] && source $NIX_PROFILE/share/nix-direnv/direnvrc
 [ -f $NIX_PROFILE/bin/direnv ] && eval "$(direnv hook bash)"
+
+alias be="bundle exec"
