@@ -4,7 +4,7 @@ let
 in
 stdenv.mkDerivation rec {
   pname = "ruby-build";
-  version = "20230424";
+  version = "20231114";
 
   src = fetchFromGitHub {
     owner = "rbenv";
@@ -12,7 +12,7 @@ stdenv.mkDerivation rec {
     rev = "v${version}";
     # NOTE:  Calculate sha256
     # nix-shell -p nix-prefetch-git jq --run "nix hash to-sri sha256:\$(nix-prefetch-git --url https://github.com/rbenv/ruby-build --quiet --rev v20230424 | jq -r '.sha256')"
-    sha256 = "sha256-mU9EG0IoW/UTHvBkncZiwsFQC59OOD/j1Xh3t87ijSA=";
+    sha256 = "sha256-dsmBhevcYWTajnt3aQO6qloQhuMt22mnn4mFW2gQBIQ=";
   };
 
   nativeBuildInputs = [
