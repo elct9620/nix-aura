@@ -38,6 +38,10 @@ ZSH_AUTOSUGGEST_STRATEGY=(history completion)
 # Development
 [ $(command -v rbenv) ] && eval "$(rbenv init -)"
 
+# Godot
+[ -f $HOME/Library/Application\ Support/Steam/steamapps/common/Godot\ Engine/Godot.app/Contents/MacOS/Godot ] && alias godot="$HOME/Library/Application\ Support/Steam/steamapps/common/Godot\ Engine/Godot.app/Contents/MacOS/Godot"
+[ -f $HOME/Library/Application\ Support/Steam/steamapps/common/Godot\ Engine/Godot.app/Contents/MacOS/Godot ] && alias gut='godot --debug-collisions --path $PWD -d -s addons/gut/gut_cmdln.gd'
+
 # Nix
 [ -f $NIX_PROFILE/share/nix-direnv/direnvrc ] && source $NIX_PROFILE/share/nix-direnv/direnvrc
 [ -f $NIX_PROFILE/bin/direnv ] && eval "$(direnv hook zsh)"

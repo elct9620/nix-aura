@@ -16,6 +16,10 @@ fi
 # Bat
 export BAT_THEME="Solarized (dark)"
 
+# Godot
+[ -f $HOME/Library/Application\ Support/Steam/steamapps/common/Godot\ Engine/Godot.app/Contents/MacOS/Godot ] && alias godot="$HOME/Library/Application\ Support/Steam/steamapps/common/Godot\ Engine/Godot.app/Contents/MacOS/Godot"
+[ -f $HOME/Library/Application\ Support/Steam/steamapps/common/Godot\ Engine/Godot.app/Contents/MacOS/Godot ] && alias gut='godot --debug-collisions --path $PWD -d -s addons/gut/gut_cmdln.gd'
+
 # Completion
 set show-all-if-ambiguous on
 bind 'TAB:menu-complete'
@@ -26,4 +30,5 @@ bind '"\e[Z":complete'
 [ -f $NIX_PROFILE/share/nix-direnv/direnvrc ] && source $NIX_PROFILE/share/nix-direnv/direnvrc
 [ -f $NIX_PROFILE/bin/direnv ] && eval "$(direnv hook bash)"
 
+# Aliases
 alias be="bundle exec"
