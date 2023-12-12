@@ -27,6 +27,7 @@ with super;
       # Development
       pkg-config
       git
+      git-lfs
       cloudflared
       terraform
       awscli
