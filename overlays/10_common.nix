@@ -33,6 +33,7 @@ with super;
       awscli
       aws-sam-cli
       vault
+      upx
       # Tools
       hugo
       # System
