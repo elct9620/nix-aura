@@ -60,6 +60,10 @@ nix profile upgrade 0
 
 ## Usage
 
+### vim
+
+The `vim` is design to use [elct9620-vim](https://github.com/elct9620/elct9620-vim) with Plug, please clone it into `~/.vim` before use the command.
+
 ### rbenv
 
 The Nix is useful for installing tools but does not provide a good experience for developers.
@@ -67,4 +71,13 @@ The Nix is useful for installing tools but does not provide a good experience fo
 To manage the Ruby development environment, the rbenv is still a better option for hosting each Ruby version standalone.
 
 > Limitation: Nix didn't provide the `pc` file for pkg-config therefore we still need to manual provide dependency for installing ruby
+>
 > WIP: make `pc` file available for ruby-build or provide them via Homebrew
+
+#### Requirements
+
+Install `libyaml` to ensure `psych` work correctly
+
+```bash
+brew install libyaml
+```
