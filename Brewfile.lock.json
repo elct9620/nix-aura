@@ -123,6 +123,50 @@
             }
           }
         }
+      },
+      "juju": {
+        "version": "3.3.0",
+        "bottle": {
+          "rebuild": 0,
+          "root_url": "https://ghcr.io/v2/homebrew/core",
+          "files": {
+            "arm64_sonoma": {
+              "cellar": ":any_skip_relocation",
+              "url": "https://ghcr.io/v2/homebrew/core/juju/blobs/sha256:fba592503fe1cd8d0506916afe3c4494fca4ae83dc66f8ed920190e64a606d44",
+              "sha256": "fba592503fe1cd8d0506916afe3c4494fca4ae83dc66f8ed920190e64a606d44"
+            },
+            "arm64_ventura": {
+              "cellar": ":any_skip_relocation",
+              "url": "https://ghcr.io/v2/homebrew/core/juju/blobs/sha256:01444eab226cb64ff591670af41851272f158b6aa088653dfbacfac01f52ba81",
+              "sha256": "01444eab226cb64ff591670af41851272f158b6aa088653dfbacfac01f52ba81"
+            },
+            "arm64_monterey": {
+              "cellar": ":any_skip_relocation",
+              "url": "https://ghcr.io/v2/homebrew/core/juju/blobs/sha256:fce5919d559c873968cd46a518d21c4d6c23852c345ea4f269614784d3135912",
+              "sha256": "fce5919d559c873968cd46a518d21c4d6c23852c345ea4f269614784d3135912"
+            },
+            "sonoma": {
+              "cellar": ":any_skip_relocation",
+              "url": "https://ghcr.io/v2/homebrew/core/juju/blobs/sha256:290f949432a3d345a1b1d6fc59f2c60cd21b7d7903dc237869cee0342afb1928",
+              "sha256": "290f949432a3d345a1b1d6fc59f2c60cd21b7d7903dc237869cee0342afb1928"
+            },
+            "ventura": {
+              "cellar": ":any_skip_relocation",
+              "url": "https://ghcr.io/v2/homebrew/core/juju/blobs/sha256:6ebc12659d8665111182c82386db6bf2b5d0ab249f36a7f455cdc7613529f98c",
+              "sha256": "6ebc12659d8665111182c82386db6bf2b5d0ab249f36a7f455cdc7613529f98c"
+            },
+            "monterey": {
+              "cellar": ":any_skip_relocation",
+              "url": "https://ghcr.io/v2/homebrew/core/juju/blobs/sha256:a76f7c86a4346ee283a57d2eb032dd3d4ab8201e51782cf3831807b6606fcb9d",
+              "sha256": "a76f7c86a4346ee283a57d2eb032dd3d4ab8201e51782cf3831807b6606fcb9d"
+            },
+            "x86_64_linux": {
+              "cellar": ":any_skip_relocation",
+              "url": "https://ghcr.io/v2/homebrew/core/juju/blobs/sha256:caeb03353f162009045b03dd9f2c3979b4f4e57643752798418d091afc377ae8",
+              "sha256": "caeb03353f162009045b03dd9f2c3979b4f4e57643752798418d091afc377ae8"
+            }
+          }
+        }
       }
     }
   },
@@ -134,7 +178,7 @@
         "Homebrew/homebrew-core": "api",
         "CLT": "15.1.0.0.1.1700200546",
         "Xcode": "15.0",
-        "macOS": "14.1"
+        "macOS": "14.2.1"
       }
     }
   }
