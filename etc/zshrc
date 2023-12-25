@@ -37,6 +37,7 @@ ZSH_AUTOSUGGEST_STRATEGY=(history completion)
 
 # Development
 [ $(command -v rbenv) ] && eval "$(rbenv init -)"
+[ $(command -v go) ] && export PATH=$PATH:$(go env GOPATH)/bin
 
 # Godot
 [ -f $HOME/Library/Application\ Support/Steam/steamapps/common/Godot\ Engine/Godot.app/Contents/MacOS/Godot ] && alias godot="$HOME/Library/Application\ Support/Steam/steamapps/common/Godot\ Engine/Godot.app/Contents/MacOS/Godot"
