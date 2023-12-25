@@ -16,6 +16,7 @@ with super;
       self.auraConfig
       # Text
       batWithAlias
+      silver-searcher
       # Editor
       vimWithConfig
       # Shell
