@@ -31,10 +31,12 @@ with super;
       git-lfs
       cloudflared
       terraform
-      awscli
-      aws-sam-cli
       vault
       upx
+      # Cloud
+      awscli
+      aws-sam-cli
+      kustomize
       # Tools
       hugo
       # System
