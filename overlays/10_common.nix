@@ -38,6 +38,7 @@ with super;
       aws-sam-cli
       kustomize
       # Tools
+      wget
       hugo
       # System
       htop
