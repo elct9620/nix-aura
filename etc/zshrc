@@ -59,3 +59,4 @@ setopt INC_APPEND_HISTORY
 
 # Alias
 alias be="bundle exec"
+alias rake='noglob rake'
