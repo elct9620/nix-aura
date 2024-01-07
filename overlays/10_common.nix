@@ -40,6 +40,7 @@ with super;
       # Tools
       wget
       hugo
+      jq
       # System
       htop
       tree
