@@ -33,11 +33,6 @@ with super;
       terraform
       vault
       upx
-      # Cloud
-      awscli
-      ssm-session-manager-plugin
-      aws-sam-cli
-      kustomize
       # Tools
       wget
       hugo

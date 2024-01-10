@@ -5,6 +5,7 @@ with super;
     name = "aura-full";
     paths = [
       auraCommon
+      auraCloud
       auraPid
       auraRuby
       auraGo
