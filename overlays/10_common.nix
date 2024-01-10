@@ -35,6 +35,7 @@ with super;
       upx
       # Cloud
       awscli
+      ssm-session-manager-plugin
       aws-sam-cli
       kustomize
       # Tools
