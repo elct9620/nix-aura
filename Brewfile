@@ -1,5 +1,6 @@
 # Development
 brew 'gnupg'
+brew 'source-highlight' # Unable install from Nix
 
 # Database
 brew 'mysql'
