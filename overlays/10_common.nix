@@ -26,6 +26,7 @@ with super;
       zsh-autosuggestions
       zsh-completions
       # Development
+      allure
       pkg-config
       git
       git-lfs
