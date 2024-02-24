@@ -34,6 +34,7 @@ with super;
       terraform
       vault
       upx
+      protobuf
       # Tools
       wget
       hugo
