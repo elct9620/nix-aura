@@ -39,6 +39,7 @@ with super;
       wget
       hugo
       jq
+      cloc
       # System
       htop
       tree
