@@ -1,3 +1,6 @@
+# AI
+brew 'cog'
+
 # Development
 brew 'gnupg'
 brew 'source-highlight' # Unable install from Nix
