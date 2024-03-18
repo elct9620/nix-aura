@@ -35,6 +35,8 @@ with super;
       vault
       upx
       protobuf
+      # Development Dependencies
+      imagemagick
       # Tools
       wget
       hugo
