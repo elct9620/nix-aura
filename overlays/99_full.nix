@@ -11,6 +11,7 @@ with super;
       auraGo
       auraNode
       auraRust
+      auraJava
       auraTemplateCmd
     ];
   };
