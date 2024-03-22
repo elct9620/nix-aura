@@ -4,7 +4,7 @@ with super;
   auraCloud = buildEnv {
     name = "aura-cloud";
     paths = [
-      awscli
+      awscli2
       ssm-session-manager-plugin
       aws-sam-cli
       kustomize
