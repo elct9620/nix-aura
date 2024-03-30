@@ -7,7 +7,9 @@ with super;
       awscli2
       ssm-session-manager-plugin
       aws-sam-cli
+      # Kubernetes
       kustomize
+      kubernetes-helm
       # S3
       minio-client
     ];
