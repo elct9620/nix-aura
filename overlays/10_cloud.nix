@@ -7,6 +7,7 @@ with super;
       awscli2
       ssm-session-manager-plugin
       aws-sam-cli
+      okta-aws-cli
       # Kubernetes
       kustomize
       kubernetes-helm
