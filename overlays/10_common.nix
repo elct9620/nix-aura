@@ -42,6 +42,7 @@ with super;
       hugo
       jq
       cloc
+      tailspin
       # System
       htop
       tree
