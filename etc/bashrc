@@ -32,3 +32,5 @@ bind '"\e[Z":complete'
 
 # Aliases
 alias be="bundle exec"
+
+export EDITOR=vim
