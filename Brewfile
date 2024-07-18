@@ -13,5 +13,8 @@ brew 'redis'
 # Ruby
 brew 'libyaml'
 
+# Machine Learning
+brew 'libomp'
+
 # Cloud
 brew 'juju'
