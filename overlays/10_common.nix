@@ -43,6 +43,7 @@ with super;
       jq
       cloc
       tailspin
+      dive
       # System
       htop
       tree
