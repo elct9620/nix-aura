@@ -18,5 +18,8 @@ brew 'libyaml'
 # Machine Learning
 brew 'libomp'
 
+# Network
+brew 'wireguard-tools' # Command Line for Wireguard related tools development
+
 # Cloud
 brew 'juju'
