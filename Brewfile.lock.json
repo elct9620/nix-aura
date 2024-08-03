@@ -449,6 +449,12 @@
         "options": {
           "full_name": "vagrant"
         }
+      },
+      "vagrant-vmware-utility": {
+        "version": "1.0.22",
+        "options": {
+          "full_name": "vagrant-vmware-utility"
+        }
       }
     }
   },
