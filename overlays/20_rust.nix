@@ -8,6 +8,7 @@ with super;
       cargo
       rustfmt
       clippy
+      rust-analyzer
     ];
   };
 }
