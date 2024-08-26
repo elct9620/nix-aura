@@ -13,6 +13,7 @@ with super;
       # Kubernetes
       kustomize
       kubernetes-helm
+      kubeseal
       # S3
       minio-client
     ];
