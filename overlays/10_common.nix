@@ -35,6 +35,7 @@ with super;
       vault
       upx
       protobuf
+      cz-cli
       # Development Dependencies
       imagemagick
       # Tools
