@@ -45,6 +45,7 @@ with super;
       cloc
       tailspin
       dive
+      mtr
       # System
       htop
       tree
