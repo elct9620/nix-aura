@@ -36,6 +36,7 @@ with super;
       upx
       protobuf
       cz-cli
+      dive
       # Development Dependencies
       imagemagick
       # Tools
