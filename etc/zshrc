@@ -38,7 +38,6 @@ ZSH_AUTOSUGGEST_STRATEGY=(history completion)
 # Development
 [ $(command -v rbenv) ] && eval "$(rbenv init -)"
 [ $(command -v go) ] && export PATH=$PATH:$(go env GOPATH)/bin
-[ $(command -v yarn) ] && export PATH=$PATH:$(yarn global bin)
 
 [ -f /opt/homebrew/lib ] && export LIBRARY_PATH=/opt/homebrew/lib:$LIBRARY_PATH
 export PKG_CONFIG_PATH=/opt/homebrew/lib/pkgconfig:~/.nix-profile/lib/pkgconfig:$PKG_CONFIG_PATH
