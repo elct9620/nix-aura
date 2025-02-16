@@ -6,6 +6,7 @@ with super;
     paths = [
       nodejs
       yarn
+      pnpm
     ];
   };
 }
