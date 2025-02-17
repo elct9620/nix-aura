@@ -53,6 +53,7 @@ with super;
       reattach-to-user-namespace
       # Utils
       inetutils
+      ffmpeg
       # Nix
       direnv
       nix-direnv
