@@ -5,7 +5,7 @@ with super;
     name = "aura-assistant";
     paths = [
       aider-chat.withPlaywright
-      playwright
+      python3Packages.playwright
     ];
  };
 }

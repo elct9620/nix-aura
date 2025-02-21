@@ -34,3 +34,6 @@ bind '"\e[Z":complete'
 alias be="bundle exec"
 
 export EDITOR=vim
+
+# Devbox as package manager
+eval "$(devbox global shellenv --init-hook)"
