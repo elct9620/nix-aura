@@ -2,5 +2,7 @@
 with pkgs;
 
 mkShell {
-  packages = [ auraFull ];
+  packages = [
+    auraFull
+  ];
 }

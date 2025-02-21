@@ -6,7 +6,6 @@ with super;
     paths = [
       auraCommon
       auraCloud
-      auraAssistant
       auraPid
       auraRuby
       auraGo

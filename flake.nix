@@ -4,9 +4,10 @@
   inputs = {
     flake-utils.url = "github:numtide/flake-utils";
     nixpkgs.url = "github:NixOS/nixpkgs/release-24.11";
+    nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
   };
 
-  outputs = { self, nixpkgs, flake-utils }:
+  outputs = { self, nixpkgs, nixpkgs-unstable, flake-utils }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         overlays =
@@ -15,19 +16,32 @@
             (name: import (./overlays + "/${name}"))
             (builtins.attrNames (builtins.readDir ./overlays));
 
-        pkgs = import nixpkgs {
+        pkgs-unstable = import nixpkgs-unstable {
           inherit system;
           inherit overlays;
 
           config.allowUnfree = true;
         };
+
+        pkgs = import nixpkgs {
+          inherit system;
+          inherit overlays;
+
+          unstable = pkgs-unstable;
+
+          config.allowUnfree = true;
+        };
       in {
         packages = {
-          inherit pkgs;
           ruby-build = pkgs.ruby-build;
-          default = pkgs.auraFull;
+          default = pkgs.buildEnv {
+            name = "aura";
+            paths = [
+              pkgs-unstable.auraLatestUnstable
+              pkgs.auraFull
+            ];
+          };
         };
-
 
         devShells.default = import ./shell.nix { inherit pkgs; };
       }
