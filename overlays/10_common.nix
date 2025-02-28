@@ -31,7 +31,6 @@ with super;
       git
       git-lfs
       cloudflared
-      terraform
       vault
       upx
       protobuf

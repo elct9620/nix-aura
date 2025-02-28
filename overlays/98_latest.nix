@@ -5,6 +5,8 @@ with super;
     name = "aura-latest";
     paths = [
       auraAssistant
+      # Use Latest Version
+      terraform
     ];
   };
 }
