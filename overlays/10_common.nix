@@ -50,6 +50,8 @@ with super;
       htop
       tree
       reattach-to-user-namespace
+      # Work
+      jira-cli-go
       # Utils
       inetutils
       ffmpeg
