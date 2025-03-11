@@ -52,6 +52,7 @@ with super;
       reattach-to-user-namespace
       # Work
       jira-cli-go
+      gh
       # Utils
       inetutils
       ffmpeg
