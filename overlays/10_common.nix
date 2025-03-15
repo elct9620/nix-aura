@@ -36,6 +36,7 @@ with super;
       protobuf
       cz-cli
       dive
+      cmake
       # Development Dependencies
       imagemagick
       # Tools
