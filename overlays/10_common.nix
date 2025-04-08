@@ -47,6 +47,7 @@ with super;
       tailspin
       dive
       mtr
+      rclone
       # System
       htop
       tree
