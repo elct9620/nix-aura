@@ -4,7 +4,9 @@ with super;
   auraAssistant = buildEnv {
     name = "aura-assistant";
     paths = [
-      aider-chat.withPlaywright
+      (aider-chat.withOptional {
+         withPlaywright = true;
+      })
     ];
  };
 }
