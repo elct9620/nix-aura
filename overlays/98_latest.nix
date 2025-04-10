@@ -7,6 +7,7 @@ with super;
       auraAssistant
       # Use Latest Version
       terraform
+      duckdb
     ];
   };
 }
