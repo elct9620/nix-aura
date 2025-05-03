@@ -13,3 +13,6 @@ push:
 
 pull:
 	devbox global pull git@github.com:elct9620/devbox.git
+
+gc:
+	nix-store --gc
