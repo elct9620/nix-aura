@@ -4,11 +4,8 @@ with super;
   auraRust = with self; buildEnv {
     name = "aura-rust";
     paths = [
-      rustc
-      cargo
-      rustfmt
-      clippy
-      rust-analyzer
+      # Use `rustup` to manage Rust toolchains, e.g. cargo, rustc, etc.
+      rustup
     ];
   };
 }
