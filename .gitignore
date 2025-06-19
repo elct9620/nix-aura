@@ -1,2 +1,3 @@
 Brewfile.json.lock
 node_modules/
+.aider*
