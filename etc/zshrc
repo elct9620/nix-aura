@@ -74,6 +74,7 @@ alias be="bundle exec"
 alias rake='noglob rake'
 
 export EDITOR=vim
+export GPG_TTY=$(tty)
 
 # Devbox as package manager
 eval "$(devbox global shellenv --init-hook)"
