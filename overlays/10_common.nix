@@ -17,6 +17,7 @@ with super;
       # Text
       batWithAlias
       silver-searcher
+      ripgrep
       # Editor
       vimWithConfig
       # Shell
