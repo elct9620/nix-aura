@@ -1,3 +1,5 @@
+[[ -f "${HOME}/Library/Application Support/amazon-q/shell/zshrc.pre.zsh" ]] && builtin source "${HOME}/Library/Application Support/amazon-q/shell/zshrc.pre.zsh"
+
 NIX_PROFILE=$HOME/.nix-profile
 
 # Powerline
@@ -42,7 +44,7 @@ export PNPM_HOME=$HOME/.pnpm
 
 [ $(command -v rbenv) ] && eval "$(rbenv init -)"
 [ $(command -v go) ] && export PATH=$PATH:$(go env GOPATH)/bin
-[ $(command -v yarn) ] && export PATH=$PATH:$(yarn global bin)
+[ -d $HOME/.npm-global ] && export PATH=$HOME/.npm-global/bin:$PATH # yarn will use this
 [ $(command -v pnpm) ] && export PATH=$PATH:$PNPM_HOME
 [ $(command -v cargo) ] && export PATH=$HOME/.cargo/bin:$PATH
 
@@ -76,3 +78,5 @@ export GPG_TTY=$(tty)
 
 # Devbox as package manager
 eval "$(devbox global shellenv --init-hook)"
+
+[[ -f "${HOME}/Library/Application Support/amazon-q/shell/zshrc.post.zsh" ]] && builtin source "${HOME}/Library/Application Support/amazon-q/shell/zshrc.post.zsh"
