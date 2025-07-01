@@ -42,6 +42,7 @@ ZSH_AUTOSUGGEST_STRATEGY=(history completion)
 [ ! -d $HOME/.pnpm ] && mkdir -p $HOME/.pnpm
 export PNPM_HOME=$HOME/.pnpm
 
+export PATH=$NIX_PROFILE/bin:$PATH # Workaround for Nix
 [ $(command -v rbenv) ] && eval "$(rbenv init -)"
 [ $(command -v go) ] && export PATH=$PATH:$(go env GOPATH)/bin
 [ -d $HOME/.npm-global ] && export PATH=$HOME/.npm-global/bin:$PATH # yarn will use this
@@ -49,7 +50,7 @@ export PNPM_HOME=$HOME/.pnpm
 [ $(command -v cargo) ] && export PATH=$HOME/.cargo/bin:$PATH
 
 [ -f /opt/homebrew/lib ] && export LIBRARY_PATH=/opt/homebrew/lib:$LIBRARY_PATH
-export PKG_CONFIG_PATH=/opt/homebrew/lib/pkgconfig:~/.nix-profile/lib/pkgconfig:$PKG_CONFIG_PATH
+export PKG_CONFIG_PATH=/opt/homebrew/lib/pkgconfig:~/$NIX_PROFILE/pkgconfig:$PKG_CONFIG_PATH
 
 # Godot
 [ -f $HOME/Library/Application\ Support/Steam/steamapps/common/Godot\ Engine/Godot.app/Contents/MacOS/Godot ] && alias godot="$HOME/Library/Application\ Support/Steam/steamapps/common/Godot\ Engine/Godot.app/Contents/MacOS/Godot"
