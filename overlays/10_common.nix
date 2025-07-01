@@ -31,6 +31,7 @@ with super;
       pkg-config
       git
       git-lfs
+      delta # The better diff tool can used by git
       cloudflared
       vault
       upx
