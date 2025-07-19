@@ -72,6 +72,16 @@ To manage the Ruby development environment, the rbenv is still a better option f
 >
 > WIP: make `pc` file available for ruby-build or provide them via Homebrew
 
+### TMUX
+
+To customize the TMUX, you can edit the `~/.tmux.conf` file.
+
+For example, you can change `uptime` to `ccmon` to display your Claude Code usage.
+
+```conf
+set -g status-right "#[fg=colour238,bg=colour234,nobold]#[fg=colour245,bg=colour238] #(ccmon --format '💰 @daily_cost / @daily_plan_usage') #[fg=colour252]#[fg=colour235,bg=colour252,bold] Time: %H:%M "
+```
+
 #### Requirements
 
 Install `libyaml` to ensure `psych` work correctly
