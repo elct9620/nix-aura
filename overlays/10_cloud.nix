@@ -12,6 +12,8 @@ with super;
       kustomize
       kubernetes-helm
       kubeseal
+      kn
+      func
       # S3
       minio-client
     ];
