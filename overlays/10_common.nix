@@ -18,6 +18,7 @@ with super;
       batWithAlias
       silver-searcher
       ripgrep
+      vale # Writing linter
       # Editor
       vimWithConfig
       # Shell
