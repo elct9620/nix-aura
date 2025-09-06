@@ -48,6 +48,7 @@ export PATH=$NIX_PROFILE/bin:$PATH # Workaround for Nix
 [ -d $HOME/.npm-global ] && export PATH=$HOME/.npm-global/bin:$PATH # yarn will use this
 [ $(command -v pnpm) ] && export PATH=$PATH:$PNPM_HOME
 [ $(command -v cargo) ] && export PATH=$HOME/.cargo/bin:$PATH
+[ -d $HOME/.local/bin ] && export PATH=$HOME/.local/bin:$PATH
 
 [ -f /opt/homebrew/lib ] && export LIBRARY_PATH=/opt/homebrew/lib:$LIBRARY_PATH
 export PKG_CONFIG_PATH=/opt/homebrew/lib/pkgconfig:~/$NIX_PROFILE/pkgconfig:$PKG_CONFIG_PATH
