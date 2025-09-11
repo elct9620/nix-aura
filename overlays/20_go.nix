@@ -28,6 +28,7 @@ with super;
       gotools
       gotags
       golangci-lint
+      goreleaser
     ];
   };
 }
