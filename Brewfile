@@ -25,6 +25,9 @@ brew 'libyaml'
 # Machine Learning
 brew 'libomp'
 
+# Mathematics
+cask 'mactex' # Template: https://github.com/blxkex/Latex-Notes-Templates
+
 # Network
 brew 'wireguard-tools' # Command Line for Wireguard related tools development
 

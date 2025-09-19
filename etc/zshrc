@@ -37,6 +37,8 @@ bindkey -e
 ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=10"
 ZSH_AUTOSUGGEST_STRATEGY=(history completion)
 
+# LaTex
+export PATH="/Library/TeX/texbin:$PATH"
 
 # Development
 [ ! -d $HOME/.pnpm ] && mkdir -p $HOME/.pnpm
