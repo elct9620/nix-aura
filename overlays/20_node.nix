@@ -8,6 +8,7 @@ with super;
       bun
       yarn
       pnpm
+      typescript-language-server
     ];
   };
 }
