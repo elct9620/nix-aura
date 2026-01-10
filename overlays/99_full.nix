@@ -8,6 +8,7 @@ with super;
       auraCloud
       auraPid
       auraRuby
+      auraPython
       auraGo
       auraNode
       auraRust
