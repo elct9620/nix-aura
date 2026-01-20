@@ -15,6 +15,7 @@ with super;
     paths = [
       self.auraConfig
       # Text
+      glow
       batWithAlias
       silver-searcher
       ripgrep
