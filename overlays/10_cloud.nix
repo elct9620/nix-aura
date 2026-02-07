@@ -6,7 +6,7 @@ with super;
     paths = [
       awscli2
       ssm-session-manager-plugin
-      aws-sam-cli
+      # aws-sam-cli
       okta-aws-cli
       # Kubernetes
       kustomize
