@@ -59,6 +59,7 @@ with super;
       # Work
       jira-cli-go
       gh
+      glab
       # Utils
       inetutils
       ffmpeg
