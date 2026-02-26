@@ -4,7 +4,7 @@ with super;
   auraNode = buildEnv {
     name = "aura-node";
     paths = [
-      nodejs_24
+      nodejs
       bun
       yarn
       pnpm
