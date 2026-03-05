@@ -68,6 +68,21 @@ fpath=($NIX_PROFILE/share/zsh/site-functions $fpath)
 [ -f $NIX_PROFILE/share/git/contrib/completion/git-completion.zsh ] && zstyle ':completion:*:*:git:*' script $NIX_PROFILE/share/git/contrib/completion/git-completion.zsh
 
 autoload -Uz compinit && compinit
+autoload -Uz add-zsh-hook
+
+# Rename tmux window to current directory
+if [ -n "$TMUX" ]; then
+  function tmux_rename_window() {
+     # Get root of git repository if it exists, otherwise use current directory
+     local dir=$(git rev-parse --show-toplevel 2>/dev/null || echo "$PWD")
+     local window_name=$(basename "$dir")
+     tmux rename-window "$window_name"
+  }
+
+  add-zsh-hook chpwd tmux_rename_window
+
+  tmux_rename_window
+fi
 
 # History
 setopt HIST_FIND_NO_DUPS
