@@ -72,11 +72,13 @@ autoload -Uz add-zsh-hook
 
 # Rename tmux window to current directory
 if [ -n "$TMUX" ]; then
+  TMUX_WINDOW_ID=$(tmux display-message -p '#{window_id}')
+
   function tmux_rename_window() {
      # Get root of git repository if it exists, otherwise use current directory
      local dir=$(git rev-parse --show-toplevel 2>/dev/null || echo "$PWD")
      local window_name=$(basename "$dir")
-     tmux rename-window "$window_name"
+     tmux rename-window -t "$TMUX_WINDOW_ID" "$window_name"
   }
 
   add-zsh-hook chpwd tmux_rename_window
