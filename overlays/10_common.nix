@@ -41,12 +41,15 @@ with super;
       cz-cli
       dive
       cmake
+      shellcheck
+      bats
       # Development Dependencies
       imagemagick
       # Tools
       wget
       hugo
       jq
+      yq-go
       cloc
       tailspin
       dive
