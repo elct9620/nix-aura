@@ -16,6 +16,9 @@ fi
 # Bat
 export BAT_THEME="Solarized (dark)"
 
+# Obisidian
+[ -d "/Applications/Obsidian.app/Contents/MacOS" ] && export PATH="$PATH:/Applications/Obsidian.app/Contents/MacOS"
+
 # Godot
 [ -f $HOME/Library/Application\ Support/Steam/steamapps/common/Godot\ Engine/Godot.app/Contents/MacOS/Godot ] && alias godot="$HOME/Library/Application\ Support/Steam/steamapps/common/Godot\ Engine/Godot.app/Contents/MacOS/Godot"
 [ -f $HOME/Library/Application\ Support/Steam/steamapps/common/Godot\ Engine/Godot.app/Contents/MacOS/Godot ] && alias gut='godot --debug-collisions --path $PWD -d -s addons/gut/gut_cmdln.gd'
