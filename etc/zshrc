@@ -43,6 +43,9 @@ export PATH="/Library/TeX/texbin:$PATH"
 # Obisidian
 [ -d "/Applications/Obsidian.app/Contents/MacOS" ] && export PATH="$PATH:/Applications/Obsidian.app/Contents/MacOS"
 
+# LMStudio
+[ -d "$HOME/.lmstudio/bin" ] && export PATH="$PATH:$HOME/.lmstudio/bin"
+
 # Development
 [ ! -d $HOME/.pnpm ] && mkdir -p $HOME/.pnpm
 export PNPM_HOME=$HOME/.pnpm
