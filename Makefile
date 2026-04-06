@@ -16,4 +16,5 @@ pull:
 	devbox global pull git@github.com:elct9620/devbox.git
 
 gc:
+	nix-env --delete-generations old
 	nix-store --gc
