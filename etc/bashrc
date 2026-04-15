@@ -33,6 +33,9 @@ bind '"\e[Z":complete'
 [ -f $NIX_PROFILE/share/nix-direnv/direnvrc ] && source $NIX_PROFILE/share/nix-direnv/direnvrc
 [ -f $NIX_PROFILE/bin/direnv ] && eval "$(direnv hook bash)"
 
+# pnpm completion
+[ $(command -v pnpm) ] && eval "$(pnpm completion bash)"
+
 # Aliases
 alias be="bundle exec"
 

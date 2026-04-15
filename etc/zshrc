@@ -76,6 +76,9 @@ fpath=($NIX_PROFILE/share/zsh/site-functions $fpath)
 autoload -Uz compinit && compinit
 autoload -Uz add-zsh-hook
 
+# pnpm completion
+[ $(command -v pnpm) ] && eval "$(pnpm completion zsh)"
+
 # Rename tmux window to current directory
 if [ -n "$TMUX" ]; then
   function tmux_rename_window() {
