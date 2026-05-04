@@ -55,6 +55,7 @@ with super;
       dive
       mtr
       rclone
+      poppler-utils
       # System
       htop
       tree
