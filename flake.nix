@@ -34,6 +34,7 @@
       in {
         packages = {
           ruby-build = pkgs.ruby-build;
+          leaf = pkgs.leaf;
           default = pkgs.buildEnv {
             name = "aura";
             paths = [

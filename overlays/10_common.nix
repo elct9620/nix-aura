@@ -16,6 +16,7 @@ with super;
       self.auraConfig
       # Text
       glow
+      leaf
       batWithAlias
       silver-searcher
       ripgrep
