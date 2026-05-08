@@ -57,6 +57,7 @@ with super;
       mtr
       rclone
       poppler-utils
+      defuddle-cli
       # System
       htop
       tree
