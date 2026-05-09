@@ -19,6 +19,7 @@ with super;
       leaf
       batWithAlias
       silver-searcher
+      fd
       ripgrep
       vale # Writing linter
       # Editor

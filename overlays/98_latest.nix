@@ -5,6 +5,8 @@ with super;
     name = "aura-latest";
     paths = [
       auraAssistant
+      # Unstable
+      pi-coding-agent
       # Use Latest Version
       terraform
       duckdb
