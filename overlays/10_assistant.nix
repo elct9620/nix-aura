@@ -4,6 +4,7 @@ with super;
   auraAssistant = buildEnv {
     name = "aura-assistant";
     paths = [
+      agent-browser
     ];
  };
 }

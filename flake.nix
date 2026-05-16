@@ -35,6 +35,7 @@
         packages = {
           ruby-build = pkgs.ruby-build;
           leaf = pkgs.leaf;
+          agent-browser = pkgs.agent-browser;
           default = pkgs.buildEnv {
             name = "aura";
             paths = [
