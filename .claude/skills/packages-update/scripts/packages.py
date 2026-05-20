@@ -19,6 +19,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import signal
 import subprocess
 import sys
 from pathlib import Path
@@ -38,6 +39,61 @@ GOT_HASH_RE = re.compile(r"got:\s*(sha256-[A-Za-z0-9+/=]+)")
 
 def run(cmd: list[str], **kwargs) -> subprocess.CompletedProcess:
     return subprocess.run(cmd, capture_output=True, text=True, **kwargs)
+
+
+def stream_until_match(
+    cmd: list[str],
+    matcher: "re.Pattern[str]",
+    skip: set[str] | None = None,
+) -> tuple[str | None, str]:
+    """Run cmd streaming live, return as soon as a line satisfies matcher.
+
+    Returns (first_match_group1, captured_text). On match we terminate the
+    process immediately rather than wait for natural exit — this matters
+    because nix-build often hangs in its post-FOD-failure daemon protocol
+    cleanup on macOS, even though the hash we need has already been printed.
+    """
+    skip = skip or set()
+    proc = subprocess.Popen(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        bufsize=1,
+    )
+    captured: list[str] = []
+    matched: str | None = None
+    assert proc.stdout is not None
+    try:
+        for line in proc.stdout:
+            sys.stderr.write(line)
+            sys.stderr.flush()
+            captured.append(line)
+            m = matcher.search(line)
+            if m and m.group(1) not in skip:
+                matched = m.group(1)
+                break
+    finally:
+        if proc.poll() is None:
+            proc.terminate()
+            try:
+                proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                proc.wait()
+    return matched, "".join(captured)
+
+
+def install_term_handler() -> None:
+    """Convert SIGTERM into SystemExit so try/finally blocks still run.
+
+    Without this, a bash-level timeout or `kill` would skip the finally
+    that restores files staged with a fake hash.
+    """
+    def _handler(signum, _frame):
+        raise SystemExit(f"received signal {signum}")
+
+    signal.signal(signal.SIGTERM, _handler)
 
 
 def parse_package(path: Path) -> dict | None:
@@ -243,7 +299,14 @@ def cmd_update_source(args: argparse.Namespace) -> int:
 
 
 def cmd_cargo_hash(args: argparse.Namespace) -> int:
-    """Stage a fake cargoHash, build the package, parse the real one from stderr."""
+    """Stage a fake cargoHash, build the package, parse the real one from stderr.
+
+    The build can be long-running on a cold cache (rustc download + every
+    crate from crates.io). Output is streamed live so the caller can see
+    progress; without that, buffering looks indistinguishable from a hang.
+    """
+    install_term_handler()
+
     path = Path(args.file)
     content = path.read_text()
 
@@ -261,20 +324,16 @@ def cmd_cargo_hash(args: argparse.Namespace) -> int:
     path.write_text(staged)
 
     try:
-        proc = run(["nix-build", str(path), "--no-out-link"])
-        combined = proc.stdout + proc.stderr
-        # The hash mismatch can be reported multiple times; the cargo deps one
-        # is the only one that follows the staged fake hash. We just take the
-        # last 'got:' line that doesn't echo back the fake hash itself.
-        candidates = [
-            h
-            for h in GOT_HASH_RE.findall(combined)
-            if h != FAKE_HASH
-        ]
-        if not candidates:
-            sys.stderr.write(combined)
+        real_hash, _ = stream_until_match(
+            ["nix-build", str(path), "--no-out-link"],
+            GOT_HASH_RE,
+            skip={FAKE_HASH},
+        )
+        if real_hash is None:
+            sys.stderr.write("no cargoHash mismatch found in build output\n")
             return 1
-        real_hash = candidates[-1]
+        # Print to stdout so the orchestrator can capture it cleanly; the
+        # build chatter went to stderr and is already on screen.
         print(real_hash)
         return 0
     finally:
