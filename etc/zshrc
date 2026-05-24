@@ -79,6 +79,21 @@ autoload -Uz add-zsh-hook
 # pnpm completion
 [ $(command -v pnpm) ] && eval "$(pnpm completion zsh)"
 
+# Use "sfw" to protect package managers
+if [ $(command -v sfw) ]; then
+  # JavaScript Ecosystem
+  alias npm='sfw npm'
+  alias pnpm='sfw pnpm'
+  alias yarn='sfw yarn'
+  # Python Ecosystem
+  alias pip='sfw pip'
+  alias pip3='sfw pip3'
+  alias pipx='sfw pipx'
+  alias uv='sfw uv'
+  # Rust Ecosystem
+  alias cargo='sfw cargo'
+fi
+
 # Rename tmux window to current directory
 if [ -n "$TMUX" ]; then
   function tmux_rename_window() {
