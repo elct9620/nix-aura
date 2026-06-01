@@ -9,6 +9,7 @@ with super;
       pi-coding-agent
       # Use Latest Version
       terraform
+      terragrunt
       duckdb
       # AWS SAM CLI usually broken in stable nixpkgs
       aws-sam-cli
