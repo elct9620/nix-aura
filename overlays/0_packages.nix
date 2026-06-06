@@ -5,4 +5,5 @@ with super;
   ruby-build = callPackage ../packages/ruby-build.nix { };
   leaf = callPackage ../packages/leaf.nix { };
   agent-browser = callPackage ../packages/agent-browser.nix { };
+  google-colab-cli = callPackage ../packages/google-colab-cli.nix { };
 }

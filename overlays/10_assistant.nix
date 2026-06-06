@@ -5,6 +5,7 @@ with super;
     name = "aura-assistant";
     paths = [
       agent-browser
+      google-colab-cli
     ];
  };
 }

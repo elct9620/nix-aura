@@ -36,6 +36,7 @@
           ruby-build = pkgs.ruby-build;
           leaf = pkgs.leaf;
           agent-browser = pkgs.agent-browser;
+          google-colab-cli = pkgs.google-colab-cli;
           default = pkgs.buildEnv {
             name = "aura";
             paths = [

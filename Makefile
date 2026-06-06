@@ -14,6 +14,11 @@ agent-browser:
 	echo "Fetching agent-browser at revision $$REVISION"; \
 	nix-shell -p nix-prefetch-github jq --run "echo \$$(nix-prefetch-github vercel-labs agent-browser --quiet --rev $$REVISION | jq -r '.hash')"
 
+google-colab-cli:
+	@read -p "Revision: " REVISION; \
+	echo "Fetching google-colab-cli at revision $$REVISION"; \
+	nix-shell -p nix-prefetch-github jq --run "echo \$$(nix-prefetch-github googlecolab google-colab-cli --quiet --rev $$REVISION | jq -r '.hash')"
+
 push:
 	devbox global push git@github.com:elct9620/devbox.git
 
