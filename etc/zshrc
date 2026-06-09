@@ -90,6 +90,7 @@ if [ $(command -v sfw) ]; then
   alias pip3='sfw pip3'
   alias pipx='sfw pipx'
   alias uv='sfw uv'
+  alias uvx='sfw uvx'
   # Rust Ecosystem
   alias cargo='sfw cargo'
 fi
