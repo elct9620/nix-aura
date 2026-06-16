@@ -6,7 +6,7 @@ Subcommands:
   check           Compare scanned packages against the latest GitHub release.
   prefetch        Compute the source sha256 for a given owner/repo/rev.
   update-source   Rewrite a package's version and source sha256.
-  cargo-hash      Run nix-build to discover the real cargoHash.
+  cargo-hash      Build the package via the flake to discover the real cargoHash.
   update-cargo    Rewrite a package's cargoHash.
 
 Output is JSON wherever a structured result is useful; the skill orchestrator
@@ -298,8 +298,26 @@ def cmd_update_source(args: argparse.Namespace) -> int:
     return 0
 
 
+def find_flake_root(start: Path) -> Path | None:
+    """Walk up from start until a directory containing flake.nix is found.
+
+    cargoHash is computed by building the package through the flake (not a
+    standalone ``nix-build`` of the .nix file) so the build uses the flake's
+    pinned nixpkgs rather than the ambient ``<nixpkgs>`` system channel.
+    """
+    for directory in [start.resolve(), *start.resolve().parents]:
+        if (directory / "flake.nix").is_file():
+            return directory
+    return None
+
+
 def cmd_cargo_hash(args: argparse.Namespace) -> int:
     """Stage a fake cargoHash, build the package, parse the real one from stderr.
+
+    The build runs through the flake (``nix build <root>#<pname>``) so the
+    cargoHash matches what the flake's pinned nixpkgs produces. The flake reads
+    the package file from the git working tree, so staging the fake hash in the
+    file is picked up even though it is uncommitted.
 
     The build can be long-running on a cold cache (rustc download + every
     crate from crates.io). Output is streamed live so the caller can see
@@ -314,6 +332,17 @@ def cmd_cargo_hash(args: argparse.Namespace) -> int:
         print(f"{path} has no cargoHash; skipping", file=sys.stderr)
         return 0
 
+    pname_match = PNAME_RE.search(content)
+    if pname_match is None:
+        sys.stderr.write(f"{path} has no pname; cannot resolve flake attribute\n")
+        return 1
+    pname = pname_match.group(1)
+
+    flake_root = find_flake_root(path)
+    if flake_root is None:
+        sys.stderr.write(f"no flake.nix found above {path}\n")
+        return 1
+
     original = content
     staged = replace_unique(
         content,
@@ -325,7 +354,11 @@ def cmd_cargo_hash(args: argparse.Namespace) -> int:
 
     try:
         real_hash, _ = stream_until_match(
-            ["nix-build", str(path), "--no-out-link"],
+            [
+                "nix", "build", f"{flake_root}#{pname}",
+                "--no-link", "--no-write-lock-file",
+                "--extra-experimental-features", "nix-command flakes",
+            ],
             GOT_HASH_RE,
             skip={FAKE_HASH},
         )

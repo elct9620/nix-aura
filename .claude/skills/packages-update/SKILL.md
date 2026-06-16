@@ -33,7 +33,7 @@ A Python helper under `scripts/packages.py` handles parsing, version queries, an
 
 - Only handles `fetchFromGitHub` (the only fetcher this repo uses)
 - All file-editing logic lives in auditable Python
-- Third-party tools we call (`gh`, `nix-prefetch-github`, `nix-build`, `nix-instantiate`) each have narrow scope
+- Third-party tools we call (`gh`, `nix-prefetch-github`, `nix build`, `nix-instantiate`) each have narrow scope
 - Every edit is followed by `nix-instantiate --parse` to catch breakage early
 
 If the repo grows fetchers (`fetchCrate`, `fetchurl`, etc.) or dep-hash kinds (`vendorHash` for Go, `npmDepsHash` for Node), extend `scripts/packages.py` rather than reaching for `nix-update`.
@@ -94,7 +94,7 @@ python3 .claude/skills/packages-update/scripts/packages.py cargo-hash \
   --file packages/<NAME>.nix
 ```
 
-This temporarily stages a fake hash, runs `nix-build packages/<NAME>.nix`, parses the real hash from the build error, restores the file, and prints the real hash. The build can take minutes the first time as it downloads sources.
+This temporarily stages a fake hash, builds the package through the flake (`nix build <flake-root>#<pname>`, deriving the attribute from the file's `pname`), parses the real hash from the build error, restores the file, and prints the real hash. Building via the flake pins the build to the flake's nixpkgs instead of the ambient `<nixpkgs>` system channel, so the hash matches the project's real output. The flake reads the package file from the git working tree, so the staged fake hash is picked up even though it is uncommitted. The build can take minutes the first time as it downloads sources.
 
 Then write it back:
 
@@ -129,7 +129,7 @@ Summarize: which packages updated, which were already current, any that failed. 
 | `check` | Same as scan, plus latest upstream tag and `outdated` flag | None — pure read (network) |
 | `prefetch OWNER REPO REV` | Compute the source sha256 for a given ref | None — pure read (network) |
 | `update-source --file --version --sha256` | Rewrite version + sha256 in a .nix file | Edits file; verifies parse |
-| `cargo-hash --file` | Detect the real cargoHash by triggering a controlled build failure | Builds source via Nix; restores file before returning |
+| `cargo-hash --file` | Detect the real cargoHash by triggering a controlled flake build failure | Builds source via `nix build <root>#<pname>`; restores file before returning |
 | `update-cargo --file --cargo-hash` | Rewrite cargoHash in a .nix file | Edits file; verifies parse |
 
 ## Convention notes
