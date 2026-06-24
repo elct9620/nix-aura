@@ -79,20 +79,33 @@ autoload -Uz add-zsh-hook
 # pnpm completion
 [ $(command -v pnpm) ] && eval "$(pnpm completion zsh)"
 
-# Use "sfw" to protect package managers
+# Use "sfw" to protect package managers.
+#
+# sfw runs an HTTP proxy that scans registry traffic; whatever the command
+# spawns inherits that proxy. So only route package-fetching commands through
+# sfw and run your own program directly -- otherwise its runtime requests (and
+# TLS) are proxied too and break (cert errors / 403).
+#
+#   Fixed subcommands (uv, cargo) -> bypass the few execution subcommands.
+#   Open-ended script names (npm/pnpm/yarn <script>) -> only allow the
+#   package-fetching subcommands through sfw; everything else runs direct.
 if [ $(command -v sfw) ]; then
-  # JavaScript Ecosystem
-  alias npm='sfw npm'
-  alias pnpm='sfw pnpm'
-  alias yarn='sfw yarn'
-  # Python Ecosystem
+  # Python: pip only installs, so the blanket wrapper is safe.
   alias pip='sfw pip'
   alias pip3='sfw pip3'
   alias pipx='sfw pipx'
-  alias uv='sfw uv'
+
+  uv() { case "$1" in run) command uv "$@" ;; *) sfw uv "$@" ;; esac }
   alias uvx='sfw uvx'
-  # Rust Ecosystem
-  alias cargo='sfw cargo'
+
+  # Rust: cargo build/check still fetch crates (and run build.rs) -> keep sfw.
+  cargo() { case "$1" in run|test|bench) command cargo "$@" ;; *) sfw cargo "$@" ;; esac }
+
+  # JavaScript: scan only install/fetch; `<pm> run`, `<pm> dev`, `<pm> <script>`
+  # run direct. dlx/exec download-and-run, so keep them scanned (like uvx).
+  npm() { case "$1" in install|i|ci|add|update|dedupe|exec) sfw npm "$@" ;; *) command npm "$@" ;; esac }
+  pnpm() { case "$1" in install|i|add|update|up|dedupe|import|fetch|dlx) sfw pnpm "$@" ;; *) command pnpm "$@" ;; esac }
+  yarn() { case "$1" in ""|install|add|upgrade|up|import|dedupe|dlx) sfw yarn "$@" ;; *) command yarn "$@" ;; esac }
 fi
 
 # Rename tmux window to current directory
