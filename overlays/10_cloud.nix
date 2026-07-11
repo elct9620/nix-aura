@@ -8,6 +8,9 @@ with super;
       ssm-session-manager-plugin
       # aws-sam-cli
       okta-aws-cli
+      # Configuration Management
+      ansible
+      ansible-lint
       # Kubernetes
       kustomize
       kubernetes-helm
