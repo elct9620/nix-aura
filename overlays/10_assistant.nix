@@ -6,6 +6,7 @@ with super;
     paths = [
       agent-browser
       google-colab-cli
+      zhtw-mcp
     ];
  };
 }
