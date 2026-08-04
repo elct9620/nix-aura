@@ -11,6 +11,8 @@ with super;
       terraform
       terragrunt
       duckdb
+      # Kaggle CLI 2.x only in unstable
+      kaggle
       # AWS SAM CLI usually broken in stable nixpkgs
       aws-sam-cli
     ];
