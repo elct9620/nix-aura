@@ -8,6 +8,7 @@ brew 'source-highlight' # Unable install from Nix
 cask 'vagrant' # grpc gem issue on M3 that Nix can't solve for now
 cask 'vagrant-vmware-utility'
 cask 'sentinel'
+cask '1password-cli' # Only distributed as a cask
 
 # Log Analysis
 tap 'control-theory/homebrew-gonzo'
