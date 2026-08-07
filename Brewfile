@@ -1,6 +1,5 @@
 # AI
 brew 'cog'
-cask 'amazon-q'
 
 # Development
 brew 'gnupg'
