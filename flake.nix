@@ -54,18 +54,34 @@
         devShells.default = import ./shell.nix { inherit pkgs; };
       }
     ) // {
-      templates = {
-        ruby = {
-          path = ./templates/ruby;
-          description = "A simple ruby development environment";
-        };
+      # Deprecated. These pin nixos-22.11, which is long past end of life, and
+      # the toolchains they install are several major versions behind. They stay
+      # published only so existing references keep resolving; devbox covers this
+      # ground now, and one-off needs are better served by a project-local flake.
+      templates =
+        let
+          deprecated = ''
+            # Deprecated
 
-        go = {
-          path = ./templates/go;
-          description = "A simple go development environment";
-        };
+            This template is no longer maintained: it pins nixos-22.11, which no
+            longer receives updates. Use devbox, or write a project-local flake
+            against a current nixpkgs, instead.
+          '';
+        in
+        {
+          ruby = {
+            path = ./templates/ruby;
+            description = "Deprecated: a simple ruby development environment";
+            welcomeText = deprecated;
+          };
 
-        default = self.templates.ruby;
-      };
+          go = {
+            path = ./templates/go;
+            description = "Deprecated: a simple go development environment";
+            welcomeText = deprecated;
+          };
+
+          default = self.templates.ruby;
+        };
     };
 }
