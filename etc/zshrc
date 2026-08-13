@@ -82,9 +82,6 @@ fpath=($NIX_PROFILE/share/zsh/site-functions $fpath)
 autoload -Uz compinit && compinit
 autoload -Uz add-zsh-hook
 
-# pnpm completion
-[ $(command -v pnpm) ] && eval "$(pnpm completion zsh)"
-
 # Use "sfw" to protect package managers.
 #
 # sfw runs an HTTP proxy that scans registry traffic; whatever the command
