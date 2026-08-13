@@ -36,6 +36,13 @@ ln -s $HOME/.nix-profile/etc/zshrc ~/.zshrc
 
 > If the `.bashrc` or `.zshrc` already exists, you can use `source $HOME/.nix-profile/etc/bashrc` to load it.
 
+Link `nix-direnv` so `use flake` and `use nix` reuse a cached environment instead of re-evaluating on every `cd`
+
+```bash
+mkdir -p ~/.config/direnv
+ln -s $HOME/.nix-profile/share/nix-direnv/direnvrc ~/.config/direnv/direnvrc
+```
+
 ## Upgrade
 
 Find installed profile

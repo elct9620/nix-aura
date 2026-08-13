@@ -1,13 +1,11 @@
-zmodload zsh/zprof
-
 NIX_PROFILE=$HOME/.nix-profile
 
 # Powerline
-POWERLINE_MODUES="venv,user,ssh,cwd,nix-shell,perms,git,jobs,exit,root"
+POWERLINE_MODULES="venv,user,ssh,cwd,nix-shell,perms,git,jobs,exit,root"
 POWERLINE_PRIORITY="root,user,host,ssh,perms,git-branch,git-status,cwd,hg,jobs,exit,cwd-path"
 
 function powerline_precmd() {
-  PS1="$($NIX_PROFILE/bin/powerline-go -jobs ${${(%):%j}:-0} -modules $POWERLINE_MODUES -priority $POWERLINE_PRIORITY -cwd-mode dironly -max-width 60)"
+  PS1="$($NIX_PROFILE/bin/powerline-go -jobs ${${(%):%j}:-0} -modules $POWERLINE_MODULES -priority $POWERLINE_PRIORITY -cwd-mode dironly -max-width 60)"
 }
 
 function install_powerline_precmd() {
@@ -27,7 +25,8 @@ fi
 export BAT_THEME="Solarized (dark)"
 
 # GPG Config
-export GPG_TTY=$(tty)
+# $TTY is maintained by zsh itself, so pinpad prompts work without forking tty(1).
+export GPG_TTY=$TTY
 
 # Restore Key Binding
 bindkey -e
@@ -58,15 +57,22 @@ export PATH=$NIX_PROFILE/bin:$PATH # Workaround for Nix
 [ $(command -v cargo) ] && export PATH=$HOME/.cargo/bin:$PATH
 [ -d $HOME/.local/bin ] && export PATH=$HOME/.local/bin:$PATH
 
-[ -f /opt/homebrew/lib ] && export LIBRARY_PATH=/opt/homebrew/lib:$LIBRARY_PATH
-export PKG_CONFIG_PATH=/opt/homebrew/lib/pkgconfig:~/$NIX_PROFILE/pkgconfig:$PKG_CONFIG_PATH
+# Native build dependencies come from both prefixes. Tie each variable to a zsh
+# array marked unique, so a nested shell re-prepending the same entries cannot
+# grow the value without bound.
+typeset -TUx LIBRARY_PATH library_path :
+typeset -TUx PKG_CONFIG_PATH pkg_config_path :
+[ -d /opt/homebrew/lib ] && library_path=(/opt/homebrew/lib $library_path)
+[ -d /opt/homebrew/lib/pkgconfig ] && pkg_config_path=(/opt/homebrew/lib/pkgconfig $pkg_config_path)
+[ -d $NIX_PROFILE/lib/pkgconfig ] && pkg_config_path=($NIX_PROFILE/lib/pkgconfig $pkg_config_path)
 
 # Godot
 [ -f $HOME/Library/Application\ Support/Steam/steamapps/common/Godot\ Engine/Godot.app/Contents/MacOS/Godot ] && alias godot="$HOME/Library/Application\ Support/Steam/steamapps/common/Godot\ Engine/Godot.app/Contents/MacOS/Godot"
 [ -f $HOME/Library/Application\ Support/Steam/steamapps/common/Godot\ Engine/Godot.app/Contents/MacOS/Godot ] && alias gut='godot --debug-collisions --path $PWD -d -s addons/gut/gut_cmdln.gd'
 
 # Nix
-[ -f $NIX_PROFILE/share/nix-direnv/direnvrc ] && source $NIX_PROFILE/share/nix-direnv/direnvrc
+# nix-direnv's direnvrc is read by direnv, not by the shell -- it is linked into
+# ~/.config/direnv/direnvrc instead (see README).
 [ -f $NIX_PROFILE/bin/direnv ] && eval "$(direnv hook zsh)"
 
 # Auto Complection
@@ -152,7 +158,6 @@ alias be="bundle exec"
 alias rake='noglob rake'
 
 export EDITOR=vim
-export GPG_TTY=$(tty)
 
 # Devbox as package manager
-eval "$(devbox global shellenv --init-hook)"
+[ $(command -v devbox) ] && eval "$(devbox global shellenv --init-hook)"

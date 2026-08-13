@@ -1,12 +1,12 @@
 NIX_PROFILE=$HOME/.nix-profile
 
 # Powerline
-POWERLINE_MODUES="venv,user,ssh,cwd,nix-shell,perms,git,jobs,exit,root"
+POWERLINE_MODULES="venv,user,ssh,cwd,nix-shell,perms,git,jobs,exit,root"
 POWERLINE_OPTIONS="-cwd-mode dironly -max-width 60"
 POWERLINE_PRIORITY="root,user,host,ssh,perms,git-branch,git-status,cwd,hg,jobs,exit,cwd-path"
 
 function _update_ps1() {
-    PS1="$($NIX_PROFILE/bin/powerline-go -jobs $(jobs -p | wc -l) -modules $POWERLINE_MODUES -priority $POWERLINE_PRIORITY $POWERLINE_OPTIONS)"
+    PS1="$($NIX_PROFILE/bin/powerline-go -jobs $(jobs -p | wc -l) -modules $POWERLINE_MODULES -priority $POWERLINE_PRIORITY $POWERLINE_OPTIONS)"
 }
 
 if [ "$TERM" != "linux" ] && [ -f "$NIX_PROFILE/bin/powerline-go" ]; then
@@ -29,8 +29,8 @@ bind 'TAB:menu-complete'
 bind '"\e[Z":complete'
 
 # Nix
-# FIXME: Not work correctly for now
-[ -f $NIX_PROFILE/share/nix-direnv/direnvrc ] && source $NIX_PROFILE/share/nix-direnv/direnvrc
+# nix-direnv's direnvrc is read by direnv, not by the shell -- it is linked into
+# ~/.config/direnv/direnvrc instead (see README).
 [ -f $NIX_PROFILE/bin/direnv ] && eval "$(direnv hook bash)"
 
 # pnpm completion
@@ -43,4 +43,4 @@ export EDITOR=vim
 export GPG_TTY=$(tty)
 
 # Devbox as package manager
-eval "$(devbox global shellenv --init-hook)"
+[ $(command -v devbox) ] && eval "$(devbox global shellenv --init-hook)"
