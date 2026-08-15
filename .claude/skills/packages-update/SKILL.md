@@ -1,31 +1,26 @@
 ---
 name: packages-update
-description: Batch-update Nix packages under packages/ in this nix-aura repo to their latest upstream versions. Use this skill whenever the user wants to update, bump, or check for new versions of packages in packages/ (ruby-build, leaf, agent-browser, or any future GitHub-sourced package). Also use when the user says "check for package updates", "bump packages", "update packages", "any new versions?", or asks about a specific package like "update leaf" / "bump ruby-build". Covers both pure source-only packages (mkDerivation with sha256) and Rust packages (also have cargoHash).
+description: Batch-update this nix-aura repo's pinned Nix dependencies — both the derivations under packages/ and the flake inputs in flake.lock — to their latest upstream versions. Use this skill whenever the user wants to update, bump, or check for new versions of anything this repo pins, whether that is a packages/ entry (ruby-build, leaf, agent-browser) or a flake input (zhtw-mcp, nixpkgs, and friends). Also use when the user says "check for package updates", "bump packages", "update packages", "any new versions?", "有什麼可以更新", asks whether a flake input has fallen behind or how old a pin is, or names one thing like "update leaf" / "bump ruby-build" / "update zhtw-mcp". Covers source-only packages (sha256), Rust packages (also cargoHash), and flake.lock input bumps including verifying the result still builds.
 ---
 
 # Packages Update
 
-Batch helper for updating Nix package files under `packages/` to their latest upstream GitHub releases.
+This repo pins its dependencies in two places, and both go stale:
+
+| Where | What it pins | How it moves |
+|---|---|---|
+| `packages/*.nix` | a GitHub tag, via `fetchFromGitHub` | edit `version` + `sha256` (+ `cargoHash` for Rust) |
+| `flake.lock` | another flake's commit | `nix flake update <input>` |
+
+Only the first is visible when reading `packages/`, which is exactly why the second gets forgotten — a flake input can sit months behind without anything in the working tree looking wrong. `check` covers both, so start there regardless of which kind the user named.
 
 ## When to use
 
-- User asks to check whether any package has a new release
+- User asks whether anything has a new version, without saying which kind
 - User asks to bump or update one or more packages
-- User mentions a specific package in `packages/` and wants it updated
+- User names something in `packages/`, or a flake input, and wants it updated
 
-If the user only wants to check (no edits), stop after `check`. If they want to actually update, continue through the update steps.
-
-## How this works
-
-`packages/` contains standalone `.nix` files, each describing one derivation that pulls source from GitHub via `fetchFromGitHub`. Updating a package means:
-
-1. Find the latest release tag upstream
-2. Compute the new source `sha256`
-3. For Rust packages, also recompute `cargoHash` (vendored crate hash)
-4. Rewrite the `.nix` file with the new values
-5. Commit per package with a conventional-commit message
-
-A Python helper under `scripts/packages.py` handles parsing, version queries, and file rewriting. The skill orchestrates the steps and decides per-package whether to invoke the Rust path.
+If the user only wants to check, stop after `check`. If they want to update, continue.
 
 ## Why a script instead of `nix-update`
 
@@ -33,110 +28,150 @@ A Python helper under `scripts/packages.py` handles parsing, version queries, an
 
 - Only handles `fetchFromGitHub` (the only fetcher this repo uses)
 - All file-editing logic lives in auditable Python
-- Third-party tools we call (`gh`, `nix-prefetch-github`, `nix build`, `nix-instantiate`) each have narrow scope
+- Third-party tools it calls (`gh`, `nix-prefetch-github`, `nix build`, `nix-instantiate`) each have narrow scope
 - Every edit is followed by `nix-instantiate --parse` to catch breakage early
 
-If the repo grows fetchers (`fetchCrate`, `fetchurl`, etc.) or dep-hash kinds (`vendorHash` for Go, `npmDepsHash` for Node), extend `scripts/packages.py` rather than reaching for `nix-update`.
+If the repo grows fetchers (`fetchCrate`, `fetchurl`) or dep-hash kinds (`vendorHash`, `npmDepsHash`), extend `scripts/packages.py` rather than reaching for `nix-update`.
 
 ## Workflow
 
-### Step 1: Check for updates
-
-Run the script's `check` subcommand from the repo root:
+### Step 1: Check
 
 ```bash
 python3 .claude/skills/packages-update/scripts/packages.py check
 ```
 
-This prints JSON with one entry per detected GitHub-sourced package, including `version`, `latest_version`, and `outdated`. Packages without `fetchFromGitHub` (e.g. `aura-pid.nix`) are skipped automatically.
+Prints JSON with two arrays.
 
-If every `outdated` is `false`, tell the user everything is up to date and stop.
+`packages` — one entry per GitHub-sourced file under `packages/`, with `version`, `latest_version`, `outdated`, and `cargo_hash` (non-null means the Rust path). Files without `fetchFromGitHub` are skipped automatically. A `latest_version: null` with an `error` means the upstream publishes neither releases nor tags — a rev-pinned source like `google-colab-cli`, which has to be checked by hand.
 
-### Step 2: Plan the updates
+`flake_inputs` — one entry per *direct* input in `flake.lock`, tagged with `kind`:
 
-For each package with `outdated: true`, gather:
-- `file` (path to rewrite)
-- `owner`, `repo`, `latest_tag` (for prefetching)
-- `latest_version` (the value to put back into `version = "..."`)
-- Whether `cargo_hash` is non-null (Rust path)
+| `kind` | Meaning | Default stance |
+|---|---|---|
+| `app` | its name matches a `packages.<system>` attribute, so we build and ship it | bump it; `package_attr` gives `verify` its target |
+| `flake` | a library input with no build of its own (e.g. `flake-utils`) | bump it, verify via `.#default` |
+| `channel` | a nixpkgs branch | rebuilds the world — propose separately, never fold into a package bump |
+| `pinned` | `rev` fixed in `flake.nix` | leave alone; the pin encodes a constraint, and `outdated` is reported as `false` on purpose |
+| `unsupported` | not a `github:` input | say so and check by hand |
 
-If the user only asked about specific packages, filter to those. Otherwise propose the full list and confirm before making changes.
+`behind_by` is best-effort — GitHub declines to compare refs that have diverged enormously, so a `null` count next to `outdated: true` is normal for an old `channel` pin and is not a failure.
 
-### Step 3: Update each package
+Transitive inputs are deliberately not examined: they belong to the flake that declares them, and overriding another project's pin is a different decision from keeping our own current.
 
-For each package to update, run the steps below in order. Doing one package at a time keeps the commits clean and lets the user bail mid-batch if anything looks off.
+### Step 2: Plan
 
-**3a. Prefetch the new source sha256:**
+Group by what the user asked for, and by blast radius. `app` and `flake` bumps are routine. A `channel` bump rebuilds everything and deserves its own proposal and its own commit. `pinned` inputs are reported so the picture is complete, not as candidates.
+
+If the user named specific things, filter to those but still mention anything else that turned out to be badly behind — that surprise is the reason `check` covers both tracks.
+
+### Step 3a: Update a `packages/` entry
+
+One package at a time keeps commits clean and lets the user bail mid-batch.
+
+**Prefetch the new source sha256:**
 
 ```bash
 python3 .claude/skills/packages-update/scripts/packages.py prefetch <OWNER> <REPO> <LATEST_TAG>
 ```
 
-This shells out to `nix-prefetch-github` (via `nix-shell -p`) and prints a single `sha256-...` line.
-
-**3b. Rewrite version + source sha256:**
+**Rewrite version + sha256:**
 
 ```bash
 python3 .claude/skills/packages-update/scripts/packages.py update-source \
-  --file packages/<NAME>.nix \
-  --version <LATEST_VERSION> \
-  --sha256 <SHA256_FROM_3A>
+  --file packages/<NAME>.nix --version <LATEST_VERSION> --sha256 <SHA256>
 ```
 
-The script replaces both fields uniquely (errors if there are zero or multiple matches) and runs `nix-instantiate --parse` on the file before returning. If parse fails, the script aborts; investigate before continuing.
+Both fields are replaced uniquely (an error if there are zero or several matches) and the file is re-parsed before returning. If parse fails the script aborts; investigate rather than retrying.
 
-**3c. Rust only — recompute `cargoHash`:**
-
-Skip this step entirely for packages whose `cargo_hash` was `null` in `check` output.
+**Rust only — recompute `cargoHash`.** Skip entirely when `cargo_hash` was `null`:
 
 ```bash
-python3 .claude/skills/packages-update/scripts/packages.py cargo-hash \
-  --file packages/<NAME>.nix
-```
-
-This temporarily stages a fake hash, builds the package through the flake (`nix build <flake-root>#<pname>`, deriving the attribute from the file's `pname`), parses the real hash from the build error, restores the file, and prints the real hash. Building via the flake pins the build to the flake's nixpkgs instead of the ambient `<nixpkgs>` system channel, so the hash matches the project's real output. The flake reads the package file from the git working tree, so the staged fake hash is picked up even though it is uncommitted. The build can take minutes the first time as it downloads sources.
-
-Then write it back:
-
-```bash
+python3 .claude/skills/packages-update/scripts/packages.py cargo-hash --file packages/<NAME>.nix
 python3 .claude/skills/packages-update/scripts/packages.py update-cargo \
-  --file packages/<NAME>.nix \
-  --cargo-hash <HASH_FROM_CARGO_HASH_STEP>
+  --file packages/<NAME>.nix --cargo-hash <HASH>
 ```
 
-**3d. Commit:**
+`cargo-hash` stages a fake hash, builds through the flake, reads the real hash out of the mismatch error, and restores the file. Building via the flake (rather than `nix-build` on the file) pins it to the flake's nixpkgs instead of the ambient `<nixpkgs>` channel, so the hash matches what the repo actually produces. Cold-cache builds take minutes.
 
-Match the existing convention from `git log` (`chore(<pname>): bump <pname> to <new-version>`):
+**Commit:**
 
 ```bash
 git add packages/<NAME>.nix
 git commit -m "chore(<pname>): bump <pname> to <latest_version>"
 ```
 
-Use `<latest_version>` exactly as it appears in the file — for ruby-build that's the `v20260520` form, for leaf it's `1.22.2`, for agent-browser it's `0.27.0`.
+Use `latest_version` exactly as it appears in the file — `v20260716` for ruby-build, `1.27.1` for leaf.
 
-### Step 4: Wrap up
+### Step 3b: Update a flake input
 
-Summarize: which packages updated, which were already current, any that failed. If a Rust package failed at `cargo-hash` (e.g. upstream changed the build), surface the error and let the user decide whether to investigate.
+```bash
+nix flake update <INPUT>
+git diff flake.lock            # confirm only the intended nodes moved
+```
+
+Then build the thing that consumes it, using `package_attr` from `check` (or `default` when that was `null`):
+
+```bash
+python3 .claude/skills/packages-update/scripts/packages.py verify --attr <ATTR>
+```
+
+Use `verify` rather than a bare `nix build`. It propagates nix's exit code and points at the failing derivation's log. Piping `nix build` into `tail` or `head` reports the *pipe's* status, so a failed build reads as a passing one — and `$PIPESTATUS` does not recover it here, because this shell is zsh (`$pipestatus`). A green build that was never actually green is worse than no check at all.
+
+Evaluating is not building: an input can resolve fine and still fail to compile, because upstream changed its own build. That is what step 4 is for.
+
+Commit separately from package bumps, since the unit of change is the lock file:
+
+```bash
+git add flake.lock            # plus flake.nix if the bump required a change there
+git commit -m "chore(flake): bump <input> to <short-rev-or-version>"
+```
+
+### Step 4: When a bumped input no longer builds
+
+Upstream owns its own Nix packaging, and it can break it — typically by moving a path or a pin in the source without updating its `flake.nix` and `flake.lock` to match. Work through this in order; the ordering matters because the cheap steps often make the expensive one unnecessary.
+
+1. **Read the real error.** `verify` prints the failing `.drv`; `nix-store -l <drv>` has the full log. A build-time network fetch failing on TLS usually means the sandbox has no CA bundle and the derivation was never supposed to reach the network — the fetch itself is the bug, not the TLS error.
+
+2. **Read upstream's own packaging.** `nix flake metadata <input-url> --json` gives the source path in the store; read its `flake.nix` and the scripts the build runs. Compare what the build *expects* against what upstream's flake *provides*. A mismatch between the two, inside upstream's own repo, means this is upstream's bug and not ours.
+
+3. **Check whether upstream already fixed it — before writing anything.**
+
+   ```bash
+   gh pr list -R <owner>/<repo> --state open
+   gh issue list -R <owner>/<repo> --state open
+   ```
+
+   An open PR against a packaging bug is both the diagnosis and the patch, already reviewed by someone who knows the codebase. Also check how far its branch trails `HEAD` (`gh api repos/<owner>/<repo>/compare/<pr-head>...<head>`) — pointing our input straight at the PR branch is tempting but usually costs every commit merged since.
+
+4. **Then choose, with the user.** Reverting the lock, pinning before the breaking commit, and patching locally are all defensible; which one fits depends on how much the user wants the new version. Present the trade-off rather than picking silently.
+
+5. **If patching locally, mirror the upstream fix rather than inventing one**, override in our `flake.nix` (`overrideAttrs`), and leave two things behind: a comment naming the upstream PR and saying to drop the override when it lands, and a memory entry so the removal actually happens. A workaround nobody records becomes permanent.
+
+### Step 5: Wrap up
+
+Summarize what moved, what was already current, and what was deliberately left alone (`pinned` inputs, `channel` bumps the user deferred). Report failures with the actual error, not a paraphrase.
 
 ## Script reference
 
-`scripts/packages.py` exposes these subcommands. Read `--help` on any of them for the exact arguments.
+`scripts/packages.py` — run `--help` on any subcommand for exact arguments.
 
 | Subcommand | Purpose | Side effects |
 |---|---|---|
 | `scan` | List GitHub-sourced packages with metadata | None — pure read |
-| `check` | Same as scan, plus latest upstream tag and `outdated` flag | None — pure read (network) |
-| `prefetch OWNER REPO REV` | Compute the source sha256 for a given ref | None — pure read (network) |
-| `update-source --file --version --sha256` | Rewrite version + sha256 in a .nix file | Edits file; verifies parse |
-| `cargo-hash --file` | Detect the real cargoHash by triggering a controlled flake build failure | Builds source via `nix build <root>#<pname>`; restores file before returning |
-| `update-cargo --file --cargo-hash` | Rewrite cargoHash in a .nix file | Edits file; verifies parse |
+| `check [--no-flake]` | Packages vs latest release, flake inputs vs upstream head | None — pure read (network, plus one `nix eval`) |
+| `prefetch OWNER REPO REV` | Source sha256 for a ref | None — pure read (network) |
+| `update-source --file --version --sha256` | Rewrite version + sha256 | Edits file; verifies parse |
+| `cargo-hash --file` | Discover the real cargoHash via a controlled build failure | Builds; restores the file before returning |
+| `update-cargo --file --cargo-hash` | Rewrite cargoHash | Edits file; verifies parse |
+| `verify --attr` | Build a flake attribute, propagating the exit code | Builds |
 
 ## Convention notes
 
-- Two `rev` templates live side by side in this repo:
-  - `rev = "${version}"` — the tag IS the version string (ruby-build's `v20260520`, leaf's `1.22.2`)
-  - `rev = "v${version}"` — the tag prefixes `v`, the version drops it (agent-browser's `0.27.0` → tag `v0.27.0`)
-  - The script handles both via `derive_version_from_tag`; don't second-guess it
-- The version detection uses `gh release view` first, falling back to `gh api .../tags` if a repo doesn't publish GitHub Releases. The `latest_tag_source` field in `check` output tells you which one matched
-- Commit message uses `pname` (kebab-case package name), not file basename — for this repo they happen to match but don't assume
+- Two `rev` templates live side by side in `packages/`:
+  - `rev = "${version}"` — the tag *is* the version (`v20260716`, `1.27.1`)
+  - `rev = "v${version}"` — the tag prefixes `v`, the version drops it (`0.34.0` → `v0.34.0`)
+  - `derive_version_from_tag` handles both; don't second-guess it
+- Version detection tries `gh release view` first, then `gh api .../tags`. `latest_tag_source` in the output says which matched
+- Commit messages use `pname`, not the file basename — they coincide today, but the script reads `pname` for a reason
+- `check` classifies an input as `app` when its name matches a `packages.<system>` attribute. Adding a new input that ships a binary means also exposing it under `packages` in `flake.nix`, which is what makes it verifiable

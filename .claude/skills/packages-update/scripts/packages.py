@@ -1,13 +1,19 @@
 #!/usr/bin/env python3
-"""Batch helper for updating Nix packages under packages/.
+"""Batch helper for updating this repo's Nix dependencies.
+
+Two kinds of dependency live here and both go stale:
+  - packages/*.nix   derivations pinning a GitHub tag via fetchFromGitHub
+  - flake inputs     other flakes pinned by rev in flake.lock
 
 Subcommands:
   scan            List packages with extractable metadata.
-  check           Compare scanned packages against the latest GitHub release.
+  check           Compare packages against releases and flake inputs against
+                  their upstream branch heads.
   prefetch        Compute the source sha256 for a given owner/repo/rev.
   update-source   Rewrite a package's version and source sha256.
   cargo-hash      Build the package via the flake to discover the real cargoHash.
   update-cargo    Rewrite a package's cargoHash.
+  verify          Build a flake attribute and propagate the real exit code.
 
 Output is JSON wherever a structured result is useful; the skill orchestrator
 parses it. Errors are written to stderr and the process exits non-zero so the
@@ -22,6 +28,7 @@ import re
 import signal
 import subprocess
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 FAKE_HASH = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
@@ -202,6 +209,168 @@ def latest_release_tag(owner: str, repo: str) -> tuple[str, str] | None:
     return None
 
 
+def iso_date(timestamp: int | None) -> str | None:
+    if timestamp is None:
+        return None
+    return datetime.fromtimestamp(timestamp, timezone.utc).date().isoformat()
+
+
+def flake_package_attrs(flake_root: Path) -> set[str]:
+    """Names under `packages.<system>` in the flake.
+
+    An input whose name matches one of these is something we build and ship, so
+    `verify` has a concrete attribute to check after bumping it. Inputs that
+    match nothing (libraries like flake-utils) have no build of their own.
+    """
+    system = run(
+        ["nix", "eval", "--impure", "--raw", "--expr", "builtins.currentSystem",
+         "--extra-experimental-features", "nix-command flakes"]
+    )
+    if system.returncode != 0:
+        return set()
+
+    proc = run(
+        ["nix", "eval", f"{flake_root}#packages.{system.stdout.strip()}",
+         "--apply", "builtins.attrNames", "--json",
+         "--extra-experimental-features", "nix-command flakes"]
+    )
+    if proc.returncode != 0:
+        return set()
+    try:
+        return set(json.loads(proc.stdout))
+    except json.JSONDecodeError:
+        return set()
+
+
+def upstream_head(owner: str, repo: str, ref: str | None) -> tuple[str, str] | None:
+    """Return (sha, iso_date) for a branch head, or the default branch's."""
+    if ref is None:
+        proc = run(["gh", "api", f"repos/{owner}/{repo}", "--jq", ".default_branch"])
+        if proc.returncode != 0 or not proc.stdout.strip():
+            return None
+        ref = proc.stdout.strip()
+
+    proc = run(
+        ["gh", "api", f"repos/{owner}/{repo}/commits/{ref}",
+         "--jq", "[.sha, .commit.committer.date] | @tsv"]
+    )
+    if proc.returncode != 0 or not proc.stdout.strip():
+        return None
+    parts = proc.stdout.strip().split("\t")
+    if len(parts) != 2:
+        return None
+    return parts[0], parts[1][:10]
+
+
+def commits_behind(owner: str, repo: str, base: str, head: str) -> int | None:
+    """How many commits the locked rev trails the branch head by.
+
+    Best-effort: GitHub declines to compare refs that have diverged enormously
+    (a months-old nixpkgs pin, say), and a missing count is not a reason to
+    withhold the rest of the row — `outdated` already stands on the rev diff.
+    """
+    proc = run(
+        ["gh", "api", f"repos/{owner}/{repo}/compare/{base}...{head}",
+         "--jq", ".ahead_by"]
+    )
+    if proc.returncode != 0 or not proc.stdout.strip():
+        return None
+    try:
+        return int(proc.stdout.strip())
+    except ValueError:
+        return None
+
+
+def check_flake_inputs(flake_root: Path) -> list[dict]:
+    """Compare each direct flake input in flake.lock against its upstream.
+
+    Only the root node's own inputs are examined. Transitive inputs belong to
+    the flake that declares them; bumping one here would override a pin its
+    owner chose, which is a different decision from keeping our own current.
+    """
+    lock_path = flake_root / "flake.lock"
+    if not lock_path.is_file():
+        return []
+
+    lock = json.loads(lock_path.read_text())
+    nodes = lock.get("nodes", {})
+    root_inputs = nodes.get("root", {}).get("inputs", {})
+    attrs = flake_package_attrs(flake_root)
+
+    rows = []
+    for name, node_key in sorted(root_inputs.items()):
+        if not isinstance(node_key, str):
+            # A list means `follows`; it has no pin of its own to compare.
+            continue
+        node = nodes.get(node_key, {})
+        locked = node.get("locked", {})
+        original = node.get("original", {})
+
+        row = {
+            "input": name,
+            "locked_rev": locked.get("rev"),
+            "locked_date": iso_date(locked.get("lastModified")),
+            "ref": original.get("ref"),
+            "package_attr": name if name in attrs else None,
+        }
+
+        if original.get("rev") is not None:
+            rows.append({
+                **row,
+                "kind": "pinned",
+                "outdated": False,
+                "note": "rev pinned in flake.nix; updating it is a deliberate "
+                        "change, not a routine bump",
+            })
+            continue
+
+        if locked.get("type") != "github":
+            rows.append({
+                **row,
+                "kind": "unsupported",
+                "outdated": None,
+                "note": f"locked type {locked.get('type')!r} is not github; "
+                        "check this input by hand",
+            })
+            continue
+
+        owner, repo = locked.get("owner"), locked.get("repo")
+        if owner == "NixOS" and repo == "nixpkgs":
+            kind = "channel"
+        elif row["package_attr"] is not None:
+            kind = "app"
+        else:
+            kind = "flake"
+
+        head = upstream_head(owner, repo, original.get("ref"))
+        if head is None:
+            rows.append({
+                **row,
+                "kind": kind,
+                "outdated": None,
+                "error": "could not resolve upstream head via gh",
+            })
+            continue
+
+        upstream_rev, upstream_date = head
+        outdated = upstream_rev != row["locked_rev"]
+        rows.append({
+            **row,
+            "kind": kind,
+            "owner": owner,
+            "repo": repo,
+            "upstream_rev": upstream_rev,
+            "upstream_date": upstream_date,
+            "outdated": outdated,
+            "behind_by": (
+                commits_behind(owner, repo, row["locked_rev"], upstream_rev)
+                if outdated and row["locked_rev"] else None
+            ),
+        })
+
+    return rows
+
+
 def cmd_check(args: argparse.Namespace) -> int:
     base = Path(args.packages_dir)
     rows = []
@@ -235,7 +404,15 @@ def cmd_check(args: argparse.Namespace) -> int:
             }
         )
 
-    json.dump({"packages": rows}, sys.stdout, indent=2)
+    out: dict = {"packages": rows}
+    if not args.no_flake:
+        flake_root = find_flake_root(base if base.is_dir() else Path.cwd())
+        if flake_root is None:
+            out["flake_inputs_error"] = "no flake.nix found; skipped flake inputs"
+        else:
+            out["flake_inputs"] = check_flake_inputs(flake_root)
+
+    json.dump(out, sys.stdout, indent=2)
     sys.stdout.write("\n")
     return 0
 
@@ -388,6 +565,38 @@ def cmd_update_cargo(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_verify(args: argparse.Namespace) -> int:
+    """Build a flake attribute and hand back nix's own exit code.
+
+    A bumped pin that evaluates is not a bumped pin that builds: upstream can
+    change its build in ways only a real build surfaces. This exists because
+    piping `nix build` into `tail`/`head` reports the pipe's success, so a
+    failed build reads as a passing one — the wrapper removes that footgun and
+    points at the full log, which holds the actual error.
+    """
+    flake_root = find_flake_root(Path(args.flake_root or "."))
+    if flake_root is None:
+        sys.stderr.write("no flake.nix found\n")
+        return 1
+
+    proc = subprocess.run(
+        ["nix", "build", f"{flake_root}#{args.attr}", "--no-link",
+         "--extra-experimental-features", "nix-command flakes"],
+        stderr=subprocess.PIPE, text=True,
+    )
+    sys.stderr.write(proc.stderr)
+
+    if proc.returncode == 0:
+        print(f"ok: {args.attr} builds")
+        return 0
+
+    drv = re.search(r"(/nix/store/\S+\.drv)", proc.stderr)
+    sys.stderr.write(f"\nbuild of {args.attr} failed (exit {proc.returncode})\n")
+    if drv:
+        sys.stderr.write(f"full log: nix-store -l {drv.group(1)}\n")
+    return proc.returncode
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -396,8 +605,13 @@ def build_parser() -> argparse.ArgumentParser:
     p_scan.add_argument("--packages-dir", default="packages")
     p_scan.set_defaults(func=cmd_scan)
 
-    p_check = sub.add_parser("check", help="check for updates against GitHub releases")
+    p_check = sub.add_parser(
+        "check", help="check packages against releases and flake inputs against upstream"
+    )
     p_check.add_argument("--packages-dir", default="packages")
+    p_check.add_argument(
+        "--no-flake", action="store_true", help="skip the flake input comparison"
+    )
     p_check.set_defaults(func=cmd_check)
 
     p_pref = sub.add_parser("prefetch", help="compute source sha256")
@@ -420,6 +634,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_uc.add_argument("--file", required=True)
     p_uc.add_argument("--cargo-hash", required=True)
     p_uc.set_defaults(func=cmd_update_cargo)
+
+    p_v = sub.add_parser("verify", help="build a flake attribute, propagating exit code")
+    p_v.add_argument("--attr", required=True)
+    p_v.add_argument("--flake-root", default=None)
+    p_v.set_defaults(func=cmd_verify)
 
     return parser
 
