@@ -88,6 +88,23 @@
     "opencc-src": {
       "flake": false,
       "locked": {
+        "lastModified": 1786023992,
+        "narHash": "sha256-amxRrJ6u+mKaUciHhry2K1qs+elww1m1hAhta/+YBGI=",
+        "owner": "BYVoid",
+        "repo": "OpenCC",
+        "rev": "5249273a3e5606852f088c9a8b23522145d94f78",
+        "type": "github"
+      },
+      "original": {
+        "owner": "BYVoid",
+        "repo": "OpenCC",
+        "rev": "5249273a3e5606852f088c9a8b23522145d94f78",
+        "type": "github"
+      }
+    },
+    "opencc-src_2": {
+      "flake": false,
+      "locked": {
         "lastModified": 1779550076,
         "narHash": "sha256-1DKcihwGvqvFnSjHt5vghwwHiOrhTP1yiouWqUi8TtQ=",
         "owner": "BYVoid",
@@ -106,6 +123,7 @@
         "flake-utils": "flake-utils",
         "nixpkgs": "nixpkgs",
         "nixpkgs-unstable": "nixpkgs-unstable",
+        "opencc-src": "opencc-src",
         "zhtw-mcp": "zhtw-mcp"
       }
     },
@@ -145,14 +163,14 @@
       "inputs": {
         "fenix": "fenix",
         "nixpkgs": "nixpkgs_2",
-        "opencc-src": "opencc-src"
+        "opencc-src": "opencc-src_2"
       },
       "locked": {
-        "lastModified": 1783677508,
-        "narHash": "sha256-XCTcqNjUj8CgQjztrS457omfV5crhpZyCAFd2o+7t1A=",
+        "lastModified": 1786679244,
+        "narHash": "sha256-+PCvnvswnEV5FG0yAuXHNbA6/Xo2DN7EZarpsFodYtw=",
         "owner": "sysprog21",
         "repo": "zhtw-mcp",
-        "rev": "2e0f4e4912a8ffdacf7fa3a155cb20c29cba043b",
+        "rev": "62a9b0a2add87676c2d6e7c780219550d9e5fd59",
         "type": "github"
       },
       "original": {
