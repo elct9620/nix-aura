@@ -75,6 +75,7 @@
           leaf = pkgs.leaf;
           agent-browser = pkgs.agent-browser;
           google-colab-cli = pkgs.google-colab-cli;
+          spinel = pkgs.spinel;
           zhtw-mcp = pkgs.zhtw-mcp;
           default = pkgs.buildEnv {
             name = "aura";

@@ -6,4 +6,5 @@ with super;
   leaf = callPackage ../packages/leaf.nix { };
   agent-browser = callPackage ../packages/agent-browser.nix { };
   google-colab-cli = callPackage ../packages/google-colab-cli.nix { };
+  spinel = callPackage ../packages/spinel.nix { };
 }

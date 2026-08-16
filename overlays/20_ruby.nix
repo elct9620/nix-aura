@@ -6,6 +6,7 @@ with super;
     paths = [
       rbenv
       ruby-build
+      spinel
     ];
   };
 }
