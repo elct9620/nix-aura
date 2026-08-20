@@ -16,17 +16,19 @@ let
     url = "https://rubygems.org/gems/rbs-${rbsVersion}.gem";
     hash = "sha256-4jf9SXh/smW/DzifLw9XiP3N8fSbtUtPeVLOqQQWKgc=";
   };
+
+  rev = "79937affbf53b4f344c5502be31722a096cf82d3";
 in
 stdenv.mkDerivation rec {
   pname = "spinel";
   # Upstream publishes no releases; pinned to a master commit.
-  version = "0-unstable-2026-08-17";
+  version = "0-unstable-2026-08-20";
 
   src = fetchFromGitHub {
     owner = "matz";
     repo = "spinel";
-    rev = "fe250951226961439535c80771b4107ef7ad2769";
-    hash = "sha256-yqDRMRtsVqSxT9ks7gCU3b+5cTJ+B1sm7One/bLv984=";
+    inherit rev;
+    hash = "sha256-SipfnthE+8UnGI23l9dHhbfvOlb0OKygZKf5FeqqDeM=";
   };
 
   nativeBuildInputs = [ makeWrapper ];
@@ -43,6 +45,14 @@ stdenv.mkDerivation rec {
     }
     check PRISM_VERSION ${prismVersion}
     check RBS_VERSION ${rbsVersion}
+
+    # The Makefile reads the build revision from git for `spinel --version`.
+    # A source tarball carries no .git, so the build would record "unknown" --
+    # and spin reads that string back as the toolchain version keying its probe
+    # records, where "unknown" means "no version at all". Hand it the pinned rev.
+    substituteInPlace Makefile \
+      --replace-fail 'git rev-parse --short=12 HEAD 2>/dev/null || echo unknown' \
+                     'echo ${builtins.substring 0 12 rev}'
 
     mkdir -p vendor/prism vendor/rbs
     tar -xf ${prismGem} -O data.tar.gz | tar -xz -C vendor/prism
