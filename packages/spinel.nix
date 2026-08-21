@@ -17,7 +17,7 @@ let
     hash = "sha256-4jf9SXh/smW/DzifLw9XiP3N8fSbtUtPeVLOqQQWKgc=";
   };
 
-  rev = "e4cce5b5f1d7fc23ca449c0777c91a4e94909959";
+  rev = "fa06b6015389dd3f8064c35ed5c3410c46070da0";
 in
 stdenv.mkDerivation rec {
   pname = "spinel";
@@ -28,7 +28,7 @@ stdenv.mkDerivation rec {
     owner = "matz";
     repo = "spinel";
     inherit rev;
-    hash = "sha256-dGbTyeLoeafvznyXuUduHFK71BILwjlcqYBz1FNmqL8=";
+    hash = "sha256-Akv/yE3N/EY5/uoS3KM0ipPOQtwb2B9JTZawx8LRurg=";
   };
 
   nativeBuildInputs = [ makeWrapper ];
