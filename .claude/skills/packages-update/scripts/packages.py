@@ -39,7 +39,9 @@ FETCH_MARKER_RE = re.compile(r"fetchFromGitHub")
 OWNER_RE = re.compile(r'owner\s*=\s*"([^"]+)"')
 REPO_RE = re.compile(r'repo\s*=\s*"([^"]+)"')
 REV_RE = re.compile(r'rev\s*=\s*"([^"]+)"')
-SRC_SHA_RE = re.compile(r'sha256\s*=\s*"([^"]+)"')
+SRC_HASH_RE = re.compile(r'(hash|sha256)\s*=\s*"([^"]+)"')
+SRC_BLOCK_RE = re.compile(r"src\s*=\s*fetchFromGitHub\s*\{")
+VERSION_ASSIGN_RE = re.compile(r'version\s*=\s*"[^"]+"')
 CARGO_HASH_RE = re.compile(r'cargoHash\s*=\s*"([^"]+)"')
 GOT_HASH_RE = re.compile(r"got:\s*(sha256-[A-Za-z0-9+/=]+)")
 
@@ -103,26 +105,71 @@ def install_term_handler() -> None:
     signal.signal(signal.SIGTERM, _handler)
 
 
+def brace_span(content: str, open_index: int) -> tuple[int, int]:
+    """Span of the attribute set opening at `open_index`, braces excluded.
+
+    Nix interpolates with `${...}`, whose braces belong to the string rather
+    than to the set, so they are skipped rather than counted.
+    """
+    depth = 0
+    i = open_index
+    while i < len(content):
+        if content[i] == "$" and content[i + 1 : i + 2] == "{":
+            inner = 1
+            i += 2
+            while i < len(content) and inner:
+                inner += (content[i] == "{") - (content[i] == "}")
+                i += 1
+            continue
+        if content[i] == "{":
+            depth += 1
+        elif content[i] == "}":
+            depth -= 1
+            if depth == 0:
+                return open_index + 1, i
+        i += 1
+    raise SystemExit(f"unbalanced braces starting at offset {open_index}")
+
+
+def src_block_span(content: str) -> tuple[int, int] | None:
+    """Span of the `src = fetchFromGitHub { ... }` the package is built from.
+
+    A file may carry several such fetches -- vendored sources a build cannot
+    reach the network for, or a dependency built alongside -- so the last one
+    is taken: nixpkgs convention puts the derivation being packaged after
+    whatever it is assembled from.
+    """
+    matches = list(SRC_BLOCK_RE.finditer(content))
+    if not matches:
+        return None
+    return brace_span(content, matches[-1].end() - 1)
+
+
 def parse_package(path: Path) -> dict | None:
     """Return metadata for a .nix file or None if it has no GitHub source.
 
-    Each field (owner/repo/rev/sha256) appears at most once per package file in
-    this repo's convention, so scanning the whole file is unambiguous and side-
-    steps trying to balance braces around `${version}` interpolations.
+    Everything describing the source is read from the `src` block itself, and
+    the identity from the last `pname`/`version` declared ahead of it, so a
+    file carrying more than one derivation is read as the one it packages.
     """
     content = path.read_text()
 
     if not FETCH_MARKER_RE.search(content):
         return None
 
-    owner = OWNER_RE.search(content)
-    repo = REPO_RE.search(content)
-    rev = REV_RE.search(content)
-    src_sha = SRC_SHA_RE.search(content)
-    pname = PNAME_RE.search(content)
-    version = VERSION_RE.search(content)
+    span = src_block_span(content)
+    if span is None:
+        return None
+    block = content[span[0] : span[1]]
 
-    if owner is None or repo is None or rev is None or src_sha is None:
+    owner = OWNER_RE.search(block)
+    repo = REPO_RE.search(block)
+    rev = REV_RE.search(block)
+    src_hash = SRC_HASH_RE.search(block)
+    pname = last_before(PNAME_RE, content, span[0])
+    version = last_before(VERSION_RE, content, span[0])
+
+    if owner is None or repo is None or rev is None or src_hash is None:
         return None
     if pname is None or version is None:
         return None
@@ -130,14 +177,20 @@ def parse_package(path: Path) -> dict | None:
     cargo = CARGO_HASH_RE.search(content)
     return {
         "file": str(path),
-        "pname": pname.group(1),
-        "version": version.group(1),
+        "pname": pname,
+        "version": version,
         "owner": owner.group(1),
         "repo": repo.group(1),
         "rev_template": rev.group(1),
-        "sha256": src_sha.group(1),
+        "sha256": src_hash.group(2),
         "cargo_hash": cargo.group(1) if cargo is not None else None,
     }
+
+
+def last_before(pattern: re.Pattern[str], content: str, limit: int) -> str | None:
+    """The last capture of `pattern` occurring before `limit`."""
+    found = [m.group(1) for m in pattern.finditer(content) if m.start() < limit]
+    return found[-1] if found else None
 
 
 def derive_version_from_tag(tag: str, rev_template: str) -> str:
@@ -430,14 +483,21 @@ def cmd_prefetch(args: argparse.Namespace) -> int:
     return 0
 
 
-def replace_unique(content: str, pattern: re.Pattern[str], replacement: str, label: str) -> str:
+def replace_unique(
+    content: str,
+    pattern: re.Pattern[str],
+    replacement: str | None,
+    label: str,
+    render=None,
+) -> str:
     matches = list(pattern.finditer(content))
     if not matches:
         raise SystemExit(f"could not find {label}")
     if len(matches) > 1:
         raise SystemExit(f"ambiguous {label}: found {len(matches)} matches")
     m = matches[0]
-    return content[: m.start()] + replacement + content[m.end() :]
+    text = render(m) if render is not None else replacement
+    return content[: m.start()] + text + content[m.end() :]
 
 
 def verify_parses(path: Path) -> None:
@@ -456,18 +516,30 @@ def cmd_update_source(args: argparse.Namespace) -> int:
     path = Path(args.file)
     content = path.read_text()
 
-    content = replace_unique(
-        content,
-        re.compile(r'version\s*=\s*"[^"]+"'),
-        f'version = "{args.version}"',
-        "version field",
+    # The `src` block decides which derivation is being updated, so both edits
+    # are made against it: the version is the last one declared ahead of it,
+    # the same one `scan` reads back.
+    span = src_block_span(content)
+    if span is None:
+        raise SystemExit("could not find a src = fetchFromGitHub block")
+
+    versions = [m for m in VERSION_ASSIGN_RE.finditer(content) if m.start() < span[0]]
+    if not versions:
+        raise SystemExit("could not find version field")
+    m = versions[-1]
+    content = content[: m.start()] + f'version = "{args.version}"' + content[m.end() :]
+    # The hash is rewritten inside the `src` block alone: a file carrying
+    # vendored sources has several, and under whichever of the two attribute
+    # names it already uses. The span is taken again -- the edit above moved it.
+    span = src_block_span(content)
+    block = replace_unique(
+        content[span[0] : span[1]],
+        SRC_HASH_RE,
+        None,
+        "source hash",
+        lambda m: f'{m.group(1)} = "{args.sha256}"',
     )
-    content = replace_unique(
-        content,
-        re.compile(r'sha256\s*=\s*"[^"]+"'),
-        f'sha256 = "{args.sha256}"',
-        "source sha256",
-    )
+    content = content[: span[0]] + block + content[span[1] :]
 
     path.write_text(content)
     verify_parses(path)

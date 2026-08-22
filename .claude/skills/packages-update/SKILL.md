@@ -43,7 +43,7 @@ python3 .claude/skills/packages-update/scripts/packages.py check
 
 Prints JSON with two arrays.
 
-`packages` — one entry per GitHub-sourced file under `packages/`, with `version`, `latest_version`, `outdated`, and `cargo_hash` (non-null means the Rust path). Files without `fetchFromGitHub` are skipped automatically. A `latest_version: null` with an `error` means the upstream publishes neither releases nor tags — a rev-pinned source like `google-colab-cli`, which has to be checked by hand.
+`packages` — one entry per GitHub-sourced file under `packages/`, with `version`, `latest_version`, `outdated`, and `cargo_hash` (non-null means the Rust path). A file is read as the derivation it packages: identity and source come from the last `src = fetchFromGitHub` block and the `pname`/`version` declared ahead of it, so whatever else the file fetches — vendored sources a sandboxed build cannot reach the network for, a dependency built alongside — is not mistaken for the package. A file with no such block is skipped, which is also how a source pinned by `rev` rather than by tag stays out: the tag comparison cannot say anything about it, and `packages/spinel.nix` is checked by hand. A `latest_version: null` with an `error` means the upstream publishes neither releases nor tags.
 
 `flake_inputs` — one entry per *direct* input in `flake.lock`, tagged with `kind`:
 
@@ -82,7 +82,7 @@ python3 .claude/skills/packages-update/scripts/packages.py update-source \
   --file packages/<NAME>.nix --version <LATEST_VERSION> --sha256 <SHA256>
 ```
 
-Both fields are replaced uniquely (an error if there are zero or several matches) and the file is re-parsed before returning. If parse fails the script aborts; investigate rather than retrying.
+Both fields are replaced within the derivation the `src` block identifies — the hash under whichever of `hash`/`sha256` the file already uses — and the file is re-parsed before returning. If parse fails the script aborts; investigate rather than retrying.
 
 **Rust only — recompute `cargoHash`.** Skip entirely when `cargo_hash` was `null`:
 
