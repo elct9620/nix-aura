@@ -43,7 +43,7 @@ python3 .claude/skills/packages-update/scripts/packages.py check
 
 Prints JSON with two arrays.
 
-`packages` — one entry per GitHub-sourced file under `packages/`, with `version`, `latest_version`, `outdated`, and `cargo_hash` (non-null means the Rust path). A file is read as the derivation it packages: identity and source come from the last `src = fetchFromGitHub` block and the `pname`/`version` declared ahead of it, so whatever else the file fetches — vendored sources a sandboxed build cannot reach the network for, a dependency built alongside — is not mistaken for the package. A file with no such block is skipped, which is also how a source pinned by `rev` rather than by tag stays out: the tag comparison cannot say anything about it, and `packages/spinel.nix` is checked by hand. A `latest_version: null` with an `error` means the upstream publishes neither releases nor tags.
+`packages` — one entry per GitHub-sourced file under `packages/`, with `version`, `latest_version`, `outdated`, and `cargo_hash` (non-null means the Rust path). A file is read as the derivation it packages: identity and source come from the last `src = fetchFromGitHub` block and the `pname`/`version` declared ahead of it, so whatever else the file fetches — vendored sources a sandboxed build cannot reach the network for, a dependency built alongside — is not mistaken for the package. A source pinned by `rev` rather than by tag stays out — the tag comparison cannot say anything about it — as does a file with no GitHub source at all. Neither disappears: `skipped` lists every such file with the reason, and reading it is what catches a package that has quietly stopped being compared, which is how `packages/sumitsubo.nix` went unnoticed until it was looked for. `packages/spinel.nix` belongs there and is checked by hand. A `latest_version: null` with an `error` means the upstream publishes neither releases nor tags.
 
 `flake_inputs` — one entry per *direct* input in `flake.lock`, tagged with `kind`:
 
@@ -158,7 +158,7 @@ Summarize what moved, what was already current, and what was deliberately left a
 
 | Subcommand | Purpose | Side effects |
 |---|---|---|
-| `scan` | List GitHub-sourced packages with metadata | None — pure read |
+| `scan` | List GitHub-sourced packages with metadata, and what was skipped and why | None — pure read |
 | `check [--no-flake]` | Packages vs latest release, flake inputs vs upstream head | None — pure read (network, plus one `nix eval`) |
 | `prefetch OWNER REPO REV` | Source sha256 for a ref | None — pure read (network) |
 | `update-source --file --version --sha256` | Rewrite version + sha256 | Edits file; verifies parse |

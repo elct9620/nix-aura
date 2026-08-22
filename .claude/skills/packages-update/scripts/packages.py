@@ -145,21 +145,24 @@ def src_block_span(content: str) -> tuple[int, int] | None:
     return brace_span(content, matches[-1].end() - 1)
 
 
-def parse_package(path: Path) -> dict | None:
-    """Return metadata for a .nix file or None if it has no GitHub source.
+def parse_package(path: Path) -> tuple[dict | None, str | None]:
+    """Return (metadata, why it could not be read) for a package file.
 
     Everything describing the source is read from the `src` block itself, and
     the identity from the last `pname`/`version` declared ahead of it, so a
     file carrying more than one derivation is read as the one it packages.
+
+    A file that cannot be read answers with the reason rather than with
+    nothing: dropping out of a comparison silently is how a package goes
+    unchecked for as long as nobody thinks to look for it.
     """
     content = path.read_text()
 
-    if not FETCH_MARKER_RE.search(content):
-        return None
-
     span = src_block_span(content)
     if span is None:
-        return None
+        if FETCH_MARKER_RE.search(content):
+            return None, "fetches from GitHub, but not as the derivation's own src"
+        return None, "no GitHub source"
     block = content[span[0] : span[1]]
 
     owner = OWNER_RE.search(block)
@@ -169,12 +172,20 @@ def parse_package(path: Path) -> dict | None:
     pname = last_before(PNAME_RE, content, span[0])
     version = last_before(VERSION_RE, content, span[0])
 
-    if owner is None or repo is None or rev is None or src_hash is None:
-        return None
+    if owner is None or repo is None:
+        return None, "src block names no owner/repo"
+    if src_hash is None:
+        return None, "src block carries no hash"
+    if rev is None:
+        return None, "src rev is not a literal (`inherit rev`), so no tag to compare"
+    if "${version}" not in rev.group(1):
+        return None, "src pins a revision rather than a tag; check it by hand"
     if pname is None or version is None:
-        return None
+        return None, "no pname/version declared ahead of the src block"
 
-    cargo = CARGO_HASH_RE.search(content)
+    # The dependency hash belongs to the derivation the src block identifies,
+    # so it is looked for after it rather than anywhere in the file.
+    cargo = first_after(CARGO_HASH_RE, content, span[0])
     return {
         "file": str(path),
         "pname": pname,
@@ -184,13 +195,18 @@ def parse_package(path: Path) -> dict | None:
         "rev_template": rev.group(1),
         "sha256": src_hash.group(2),
         "cargo_hash": cargo.group(1) if cargo is not None else None,
-    }
+    }, None
 
 
 def last_before(pattern: re.Pattern[str], content: str, limit: int) -> str | None:
     """The last capture of `pattern` occurring before `limit`."""
     found = [m.group(1) for m in pattern.finditer(content) if m.start() < limit]
     return found[-1] if found else None
+
+
+def first_after(pattern: re.Pattern[str], content: str, start: int) -> re.Match[str] | None:
+    """The first match of `pattern` occurring at or after `start`."""
+    return next((m for m in pattern.finditer(content) if m.start() >= start), None)
 
 
 def derive_version_from_tag(tag: str, rev_template: str) -> str:
@@ -214,9 +230,9 @@ def cmd_scan(args: argparse.Namespace) -> int:
     results = []
     skipped = []
     for path in sorted(base.glob("*.nix")):
-        meta = parse_package(path)
+        meta, reason = parse_package(path)
         if meta is None:
-            skipped.append(str(path))
+            skipped.append({"file": str(path), "reason": reason})
         else:
             results.append(meta)
 
@@ -427,9 +443,11 @@ def check_flake_inputs(flake_root: Path) -> list[dict]:
 def cmd_check(args: argparse.Namespace) -> int:
     base = Path(args.packages_dir)
     rows = []
+    skipped = []
     for path in sorted(base.glob("*.nix")):
-        meta = parse_package(path)
+        meta, reason = parse_package(path)
         if meta is None:
+            skipped.append({"file": str(path), "reason": reason})
             continue
 
         result = latest_release_tag(meta["owner"], meta["repo"])
@@ -457,7 +475,7 @@ def cmd_check(args: argparse.Namespace) -> int:
             }
         )
 
-    out: dict = {"packages": rows}
+    out: dict = {"packages": rows, "skipped": skipped}
     if not args.no_flake:
         flake_root = find_flake_root(base if base.is_dir() else Path.cwd())
         if flake_root is None:
@@ -483,23 +501,6 @@ def cmd_prefetch(args: argparse.Namespace) -> int:
     return 0
 
 
-def replace_unique(
-    content: str,
-    pattern: re.Pattern[str],
-    replacement: str | None,
-    label: str,
-    render=None,
-) -> str:
-    matches = list(pattern.finditer(content))
-    if not matches:
-        raise SystemExit(f"could not find {label}")
-    if len(matches) > 1:
-        raise SystemExit(f"ambiguous {label}: found {len(matches)} matches")
-    m = matches[0]
-    text = render(m) if render is not None else replacement
-    return content[: m.start()] + text + content[m.end() :]
-
-
 def verify_parses(path: Path) -> None:
     """Sanity-check that the edited .nix file still parses.
 
@@ -517,29 +518,24 @@ def cmd_update_source(args: argparse.Namespace) -> int:
     content = path.read_text()
 
     # The `src` block decides which derivation is being updated, so both edits
-    # are made against it: the version is the last one declared ahead of it,
-    # the same one `scan` reads back.
+    # are made against it: the version is the last one declared ahead of it --
+    # the same one `scan` reads back -- and the hash is the one inside it,
+    # under whichever of the two attribute names the file already uses.
     span = src_block_span(content)
     if span is None:
         raise SystemExit("could not find a src = fetchFromGitHub block")
 
     versions = [m for m in VERSION_ASSIGN_RE.finditer(content) if m.start() < span[0]]
     if not versions:
-        raise SystemExit("could not find version field")
+        raise SystemExit("could not find a version field ahead of the src block")
     m = versions[-1]
     content = content[: m.start()] + f'version = "{args.version}"' + content[m.end() :]
-    # The hash is rewritten inside the `src` block alone: a file carrying
-    # vendored sources has several, and under whichever of the two attribute
-    # names it already uses. The span is taken again -- the edit above moved it.
-    span = src_block_span(content)
-    block = replace_unique(
-        content[span[0] : span[1]],
-        SRC_HASH_RE,
-        None,
-        "source hash",
-        lambda m: f'{m.group(1)} = "{args.sha256}"',
-    )
-    content = content[: span[0]] + block + content[span[1] :]
+
+    span = src_block_span(content)  # the edit above moved it
+    m = SRC_HASH_RE.search(content, span[0], span[1])
+    if m is None:
+        raise SystemExit("could not find a hash in the src block")
+    content = content[: m.start()] + f'{m.group(1)} = "{args.sha256}"' + content[m.end() :]
 
     path.write_text(content)
     verify_parses(path)
@@ -577,15 +573,14 @@ def cmd_cargo_hash(args: argparse.Namespace) -> int:
     path = Path(args.file)
     content = path.read_text()
 
-    if not CARGO_HASH_RE.search(content):
+    meta, reason = parse_package(path)
+    if meta is None:
+        sys.stderr.write(f"{path} cannot be read as a package: {reason}\n")
+        return 1
+    if meta["cargo_hash"] is None:
         print(f"{path} has no cargoHash; skipping", file=sys.stderr)
         return 0
-
-    pname_match = PNAME_RE.search(content)
-    if pname_match is None:
-        sys.stderr.write(f"{path} has no pname; cannot resolve flake attribute\n")
-        return 1
-    pname = pname_match.group(1)
+    pname = meta["pname"]
 
     flake_root = find_flake_root(path)
     if flake_root is None:
@@ -593,13 +588,7 @@ def cmd_cargo_hash(args: argparse.Namespace) -> int:
         return 1
 
     original = content
-    staged = replace_unique(
-        content,
-        re.compile(r'cargoHash\s*=\s*"[^"]+"'),
-        f'cargoHash = "{FAKE_HASH}"',
-        "cargoHash",
-    )
-    path.write_text(staged)
+    path.write_text(rewrite_cargo_hash(content, FAKE_HASH))
 
     try:
         real_hash, _ = stream_until_match(
@@ -622,15 +611,20 @@ def cmd_cargo_hash(args: argparse.Namespace) -> int:
         path.write_text(original)
 
 
+def rewrite_cargo_hash(content: str, value: str) -> str:
+    """Rewrite the cargoHash of the derivation the src block identifies."""
+    span = src_block_span(content)
+    if span is None:
+        raise SystemExit("could not find a src = fetchFromGitHub block")
+    m = first_after(CARGO_HASH_RE, content, span[0])
+    if m is None:
+        raise SystemExit("could not find cargoHash after the src block")
+    return content[: m.start()] + f'cargoHash = "{value}"' + content[m.end() :]
+
+
 def cmd_update_cargo(args: argparse.Namespace) -> int:
     path = Path(args.file)
-    content = path.read_text()
-    content = replace_unique(
-        content,
-        re.compile(r'cargoHash\s*=\s*"[^"]+"'),
-        f'cargoHash = "{args.cargo_hash}"',
-        "cargoHash",
-    )
+    content = rewrite_cargo_hash(Path(args.file).read_text(), args.cargo_hash)
     path.write_text(content)
     verify_parses(path)
     print(f"updated cargoHash in {path}")
