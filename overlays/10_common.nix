@@ -22,6 +22,7 @@ with super;
       fd
       ripgrep
       vale # Writing linter
+      sumitsubo # Spec-versus-code linter
       # Editor
       vimWithConfig
       # Shell

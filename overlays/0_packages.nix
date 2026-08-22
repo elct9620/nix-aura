@@ -7,4 +7,5 @@ with super;
   agent-browser = callPackage ../packages/agent-browser.nix { };
   google-colab-cli = callPackage ../packages/google-colab-cli.nix { };
   spinel = callPackage ../packages/spinel.nix { };
+  sumitsubo = callPackage ../packages/sumitsubo.nix { };
 }

@@ -41,6 +41,7 @@
           agent-browser = pkgs.agent-browser;
           google-colab-cli = pkgs.google-colab-cli;
           spinel = pkgs.spinel;
+          sumitsubo = pkgs.sumitsubo;
           zhtw-mcp = pkgs.zhtw-mcp;
           default = pkgs.buildEnv {
             name = "aura";
