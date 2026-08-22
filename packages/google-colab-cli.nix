@@ -63,7 +63,7 @@ let
 in
 python3Packages.buildPythonApplication rec {
   pname = "google-colab-cli";
-  version = "0.5.9";
+  version = "0.6.0";
   pyproject = true;
 
   src = fetchFromGitHub {
@@ -72,7 +72,7 @@ python3Packages.buildPythonApplication rec {
     rev = "v${version}";
     # NOTE: Calculate sha256
     # make google-colab-cli
-    sha256 = "sha256-oRhAKWeZe+faRuXVKYNLnLeFDaVCFkeAO+utz+/t/Xw=";
+    sha256 = "sha256-pnt4TzrFTRg3RCUzYCPreX9a4LykVg/f1WwEumzzeU8=";
   };
 
   build-system = with python3Packages; [
@@ -82,8 +82,10 @@ python3Packages.buildPythonApplication rec {
 
   dependencies = with python3Packages; [
     click
+    filelock
     google-auth
     google-auth-oauthlib
+    html2text
     jupyter-kernel-client
     nbformat
     packaging
@@ -100,6 +102,7 @@ python3Packages.buildPythonApplication rec {
   # Upstream pins newer minimums than nixpkgs ships; relax and rely on
   # runtime verification.
   pythonRelaxDeps = [
+    "filelock"
     "google-auth"
     "google-auth-oauthlib"
     "pydantic"
