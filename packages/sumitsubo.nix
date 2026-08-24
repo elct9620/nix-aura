@@ -31,13 +31,13 @@ let
 in
 stdenv.mkDerivation rec {
   pname = "sumitsubo";
-  version = "0.1.0-preview3";
+  version = "0.1.0-preview4";
 
   src = fetchFromGitHub {
     owner = "elct9620";
     repo = "sumitsubo";
     rev = "v${version}";
-    hash = "sha256-ElWmKOuiG6JMryja9Es95USxRwwZugtArnZeva1VNbI=";
+    hash = "sha256-jCm4Wd3py+JhZGv409xLpLQqcuEA+xXpimIHiE5UvJ4=";
   };
 
   nativeBuildInputs = [ spinel ];
@@ -75,7 +75,7 @@ stdenv.mkDerivation rec {
     # revision of the tag this derivation fetches.
     substituteInPlace scripts/build_rev.sh \
       --replace-fail 'rev=$(git -C "$root" rev-parse --short=7 HEAD 2>/dev/null || echo unknown)' \
-                     'rev=b97ed46'
+                     'rev=9661e8b'
     ./scripts/build_rev.sh
   '';
 
