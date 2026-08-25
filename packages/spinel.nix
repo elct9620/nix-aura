@@ -17,18 +17,18 @@ let
     hash = "sha256-4jf9SXh/smW/DzifLw9XiP3N8fSbtUtPeVLOqQQWKgc=";
   };
 
-  rev = "81f57d44e6c5eeda967f1121e1bbc6829765a68d";
+  rev = "5563898601492636fce7b66fc4b3694c298a18ba";
 in
 stdenv.mkDerivation rec {
   pname = "spinel";
   # Upstream publishes no releases; pinned to a master commit.
-  version = "0-unstable-2026-08-24";
+  version = "0-unstable-2026-08-25";
 
   src = fetchFromGitHub {
     owner = "matz";
     repo = "spinel";
     inherit rev;
-    hash = "sha256-zfrRV3J93R0SmO8VkPtaKmM1h/gAYfsI2sLPQg6OHHo=";
+    hash = "sha256-DNP8nI2JoADM7VKZfTUHqsakGhpn4eehQbt654U/024=";
   };
 
   nativeBuildInputs = [ makeWrapper ];
