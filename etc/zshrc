@@ -93,13 +93,36 @@ autoload -Uz add-zsh-hook
 #   Open-ended script names (npm/pnpm/yarn <script>) -> only allow the
 #   package-fetching subcommands through sfw; everything else runs direct.
 if [ $(command -v sfw) ]; then
-  # Python: pip only installs, so the blanket wrapper is safe.
-  alias pip='sfw pip'
-  alias pip3='sfw pip3'
-  alias pipx='sfw pipx'
+  # sfw hands its child a trust store holding its own MITM CA and nothing else,
+  # so a host it tunnels instead of intercepting -- an internal package index --
+  # cannot be verified at all, and the failure reads as a certificate error with
+  # no mention of sfw. sfw_extra_roots trusts the roots listed in one reviewed
+  # file as well, and only for the managers that reach such an index; the
+  # JavaScript and Rust ones below keep the single-CA store. sfw generates a
+  # fresh CA per run, so the merged bundle is rebuilt each time inside sfw's own
+  # temp directory and outlives nothing.
+  : ${SFW_EXTRA_ROOTS:=$NIX_PROFILE/etc/sfw-extra-roots.pem}
 
-  uv() { case "$1" in run) command uv "$@" ;; *) sfw uv "$@" ;; esac }
-  alias uvx='sfw uvx'
+  sfw_extra_roots() {
+    [ -f "$SFW_EXTRA_ROOTS" ] || { sfw "$@"; return; }
+    SFW_EXTRA_ROOTS=$SFW_EXTRA_ROOTS sfw sh -c '
+      bundle=$SSL_CERT_DIR/sfw-extra-roots.pem
+      cat "$SSL_CERT_FILE" "$SFW_EXTRA_ROOTS" > "$bundle" || {
+        echo "sfw: cannot merge $SFW_EXTRA_ROOTS into the trust bundle" >&2
+        exit 1
+      }
+      export SSL_CERT_FILE=$bundle PIP_CERT=$bundle
+      exec "$@"
+    ' sh "$@"
+  }
+
+  # Python: pip only installs, so the blanket wrapper is safe.
+  alias pip='sfw_extra_roots pip'
+  alias pip3='sfw_extra_roots pip3'
+  alias pipx='sfw_extra_roots pipx'
+
+  uv() { case "$1" in run) command uv "$@" ;; *) sfw_extra_roots uv "$@" ;; esac }
+  alias uvx='sfw_extra_roots uvx'
 
   # Rust: cargo build/check still fetch crates (and run build.rs) -> keep sfw.
   cargo() { case "$1" in run|test|bench) command cargo "$@" ;; *) sfw cargo "$@" ;; esac }
