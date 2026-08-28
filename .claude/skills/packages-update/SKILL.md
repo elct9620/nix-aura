@@ -67,7 +67,7 @@ If the user named specific things, filter to those but still mention anything el
 
 ### Step 3a: Update a `packages/` entry
 
-One package at a time keeps commits clean and lets the user bail mid-batch.
+One package at a time keeps commits clean and lets the user bail mid-batch. A package that fails is set aside on its own; the rest of the batch still ships. Batch only the `verify` builds (see below) — never the decision to commit, which stays per package.
 
 **Prefetch the new source sha256:**
 
@@ -118,6 +118,16 @@ python3 .claude/skills/packages-update/scripts/packages.py verify --attr <ATTR>
 
 Use `verify` rather than a bare `nix build`. It propagates nix's exit code and points at the failing derivation's log. Piping `nix build` into `tail` or `head` reports the *pipe's* status, so a failed build reads as a passing one — and `$PIPESTATUS` does not recover it here, because this shell is zsh (`$pipestatus`). A green build that was never actually green is worse than no check at all.
 
+`--attr` takes several attrs (`--attr leaf spinel zhtw-mcp`). They go into one `nix build` so nix schedules them itself and independent fetches overlap, and each still gets its own line on stdout:
+
+```
+FAILED: spinel
+ok: zhtw-mcp builds
+ok: agent-browser builds
+```
+
+One broken upstream therefore costs the other bumps nothing: they keep their verdict and stay committable, and only the broken one is set aside. That per-attr verdict is the point — batching is just how it gets there faster. Attribution costs a second pass, but only on failure, and only the broken attr actually rebuilds because the batch already put the survivors in the store.
+
 Evaluating is not building: an input can resolve fine and still fail to compile, because upstream changed its own build. That is what step 4 is for.
 
 Commit separately from package bumps, since the unit of change is the lock file:
@@ -159,12 +169,12 @@ Summarize what moved, what was already current, and what was deliberately left a
 | Subcommand | Purpose | Side effects |
 |---|---|---|
 | `scan` | List GitHub-sourced packages with metadata, and what was skipped and why | None — pure read |
-| `check [--no-flake]` | Packages vs latest release, flake inputs vs upstream head | None — pure read (network, plus one `nix eval`) |
+| `check [--no-flake]` | Packages vs latest release, flake inputs vs upstream head; lookups run concurrently, so runtime tracks the slowest query rather than the number of packages | None — pure read (network, plus one `nix eval`) |
 | `prefetch OWNER REPO REV` | Source sha256 for a ref | None — pure read (network) |
 | `update-source --file --version --sha256` | Rewrite version + sha256 | Edits file; verifies parse |
 | `cargo-hash --file` | Discover the real cargoHash via a controlled build failure | Builds; restores the file before returning |
 | `update-cargo --file --cargo-hash` | Rewrite cargoHash | Edits file; verifies parse |
-| `verify --attr` | Build a flake attribute, propagating the exit code | Builds |
+| `verify --attr` | Build one or more flake attributes, reporting a verdict per attr and propagating the exit code | Builds |
 
 ## Convention notes
 

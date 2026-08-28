@@ -28,6 +28,7 @@ import re
 import signal
 import subprocess
 import sys
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -48,6 +49,21 @@ GOT_HASH_RE = re.compile(r"got:\s*(sha256-[A-Za-z0-9+/=]+)")
 
 def run(cmd: list[str], **kwargs) -> subprocess.CompletedProcess:
     return subprocess.run(cmd, capture_output=True, text=True, **kwargs)
+
+
+def parallel_map(fn, items: list, workers: int = 8) -> list:
+    """Map fn over items concurrently, preserving input order.
+
+    Every upstream lookup is an independent read, so a check should cost
+    about one round trip rather than one per item — otherwise its runtime
+    grows with every package or input the repo gains, which is exactly when
+    the check matters most. Order is preserved so callers can zip results
+    back onto the rows they belong to.
+    """
+    if not items:
+        return []
+    with ThreadPoolExecutor(max_workers=min(workers, len(items))) as pool:
+        return list(pool.map(fn, items))
 
 
 def stream_until_match(
@@ -350,7 +366,7 @@ def commits_behind(owner: str, repo: str, base: str, head: str) -> int | None:
         return None
 
 
-def check_flake_inputs(flake_root: Path) -> list[dict]:
+def check_flake_inputs(flake_root: Path, attrs: set[str]) -> list[dict]:
     """Compare each direct flake input in flake.lock against its upstream.
 
     Only the root node's own inputs are examined. Transitive inputs belong to
@@ -364,9 +380,13 @@ def check_flake_inputs(flake_root: Path) -> list[dict]:
     lock = json.loads(lock_path.read_text())
     nodes = lock.get("nodes", {})
     root_inputs = nodes.get("root", {}).get("inputs", {})
-    attrs = flake_package_attrs(flake_root)
 
-    rows = []
+    rows: list[dict] = []
+    # A row that needs an upstream answer reserves its slot now and is
+    # filled in once the batched lookups return, so the output stays
+    # ordered by input name no matter which query finishes first.
+    head_jobs: list[tuple] = []
+
     for name, node_key in sorted(root_inputs.items()):
         if not isinstance(node_key, str):
             # A list means `follows`; it has no pin of its own to compare.
@@ -411,31 +431,41 @@ def check_flake_inputs(flake_root: Path) -> list[dict]:
         else:
             kind = "flake"
 
-        head = upstream_head(owner, repo, original.get("ref"))
+        rows.append({**row, "kind": kind})
+        head_jobs.append((len(rows) - 1, owner, repo, original.get("ref")))
+
+    heads = parallel_map(lambda j: upstream_head(j[1], j[2], j[3]), head_jobs)
+
+    # `behind_by` needs the head it is measured against, so it forms a
+    # second batch rather than a nested call per row.
+    behind_jobs: list[tuple] = []
+    for (index, owner, repo, _ref), head in zip(head_jobs, heads):
         if head is None:
-            rows.append({
-                **row,
-                "kind": kind,
+            rows[index].update({
                 "outdated": None,
                 "error": "could not resolve upstream head via gh",
             })
             continue
 
         upstream_rev, upstream_date = head
-        outdated = upstream_rev != row["locked_rev"]
-        rows.append({
-            **row,
-            "kind": kind,
+        locked_rev = rows[index]["locked_rev"]
+        outdated = upstream_rev != locked_rev
+        rows[index].update({
             "owner": owner,
             "repo": repo,
             "upstream_rev": upstream_rev,
             "upstream_date": upstream_date,
             "outdated": outdated,
-            "behind_by": (
-                commits_behind(owner, repo, row["locked_rev"], upstream_rev)
-                if outdated and row["locked_rev"] else None
-            ),
+            "behind_by": None,
         })
+        if outdated and locked_rev:
+            behind_jobs.append((index, owner, repo, locked_rev, upstream_rev))
+
+    counts = parallel_map(
+        lambda j: commits_behind(j[1], j[2], j[3], j[4]), behind_jobs
+    )
+    for (index, *_rest), count in zip(behind_jobs, counts):
+        rows[index]["behind_by"] = count
 
     return rows
 
@@ -444,13 +474,34 @@ def cmd_check(args: argparse.Namespace) -> int:
     base = Path(args.packages_dir)
     rows = []
     skipped = []
+
+    metas = []
     for path in sorted(base.glob("*.nix")):
         meta, reason = parse_package(path)
         if meta is None:
             skipped.append({"file": str(path), "reason": reason})
             continue
+        metas.append(meta)
 
-        result = latest_release_tag(meta["owner"], meta["repo"])
+    flake_root = None
+    if not args.no_flake:
+        flake_root = find_flake_root(base if base.is_dir() else Path.cwd())
+
+    # Reading the flake's package names costs a `nix eval`, about as long as
+    # the whole release sweep, and neither needs the other's answer — start
+    # it first so it runs underneath the sweep instead of after it.
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        attrs_job = (
+            pool.submit(flake_package_attrs, flake_root)
+            if flake_root is not None
+            else None
+        )
+        results = parallel_map(
+            lambda m: latest_release_tag(m["owner"], m["repo"]), metas
+        )
+        attrs = attrs_job.result() if attrs_job is not None else set()
+
+    for meta, result in zip(metas, results):
         if result is None:
             rows.append(
                 {
@@ -477,11 +528,10 @@ def cmd_check(args: argparse.Namespace) -> int:
 
     out: dict = {"packages": rows, "skipped": skipped}
     if not args.no_flake:
-        flake_root = find_flake_root(base if base.is_dir() else Path.cwd())
         if flake_root is None:
             out["flake_inputs_error"] = "no flake.nix found; skipped flake inputs"
         else:
-            out["flake_inputs"] = check_flake_inputs(flake_root)
+            out["flake_inputs"] = check_flake_inputs(flake_root, attrs)
 
     json.dump(out, sys.stdout, indent=2)
     sys.stdout.write("\n")
@@ -631,35 +681,72 @@ def cmd_update_cargo(args: argparse.Namespace) -> int:
     return 0
 
 
+def build_attrs(flake_root: Path, attrs: list[str]) -> subprocess.CompletedProcess:
+    """Run one `nix build` over every attr, capturing stderr."""
+    return subprocess.run(
+        ["nix", "build", *(f"{flake_root}#{a}" for a in attrs), "--no-link",
+         "--extra-experimental-features", "nix-command flakes"],
+        stderr=subprocess.PIPE, text=True,
+    )
+
+
+def report_failure(attr: str, proc: subprocess.CompletedProcess) -> None:
+    drv = re.search(r"(/nix/store/\S+\.drv)", proc.stderr)
+    sys.stderr.write(f"\nbuild of {attr} failed (exit {proc.returncode})\n")
+    if drv:
+        sys.stderr.write(f"full log: nix-store -l {drv.group(1)}\n")
+
+
 def cmd_verify(args: argparse.Namespace) -> int:
-    """Build a flake attribute and hand back nix's own exit code.
+    """Build flake attributes and say, per attr, which ones hold.
 
     A bumped pin that evaluates is not a bumped pin that builds: upstream can
     change its build in ways only a real build surfaces. This exists because
     piping `nix build` into `tail`/`head` reports the pipe's success, so a
     failed build reads as a passing one — the wrapper removes that footgun and
     points at the full log, which holds the actual error.
+
+    Several attrs go into one `nix build` so nix schedules them itself and
+    independent fetches overlap. But one broken upstream must not cost the
+    other bumps their verdict — a batch failure names no attr, and every bump
+    is meant to stand or fall on its own. So a failed batch is re-run one attr
+    at a time to attribute the failure; whatever the batch already built is in
+    the store, so the survivors return immediately and only the broken one
+    pays for a second attempt.
     """
     flake_root = find_flake_root(Path(args.flake_root or "."))
     if flake_root is None:
         sys.stderr.write("no flake.nix found\n")
         return 1
 
-    proc = subprocess.run(
-        ["nix", "build", f"{flake_root}#{args.attr}", "--no-link",
-         "--extra-experimental-features", "nix-command flakes"],
-        stderr=subprocess.PIPE, text=True,
-    )
+    attrs = args.attr
+    proc = build_attrs(flake_root, attrs)
     sys.stderr.write(proc.stderr)
 
     if proc.returncode == 0:
-        print(f"ok: {args.attr} builds")
+        for attr in attrs:
+            print(f"ok: {attr} builds")
         return 0
 
-    drv = re.search(r"(/nix/store/\S+\.drv)", proc.stderr)
-    sys.stderr.write(f"\nbuild of {args.attr} failed (exit {proc.returncode})\n")
-    if drv:
-        sys.stderr.write(f"full log: nix-store -l {drv.group(1)}\n")
+    if len(attrs) == 1:
+        report_failure(attrs[0], proc)
+        return proc.returncode
+
+    sys.stderr.write(
+        "\nbatch build failed; re-running per attr to attribute it\n"
+    )
+    failed = 0
+    for attr in attrs:
+        one = build_attrs(flake_root, [attr])
+        if one.returncode == 0:
+            print(f"ok: {attr} builds")
+            continue
+        failed += 1
+        sys.stderr.write(one.stderr)
+        print(f"FAILED: {attr}")
+        report_failure(attr, one)
+
+    sys.stderr.write(f"\n{failed} of {len(attrs)} attrs failed to build\n")
     return proc.returncode
 
 
@@ -701,8 +788,14 @@ def build_parser() -> argparse.ArgumentParser:
     p_uc.add_argument("--cargo-hash", required=True)
     p_uc.set_defaults(func=cmd_update_cargo)
 
-    p_v = sub.add_parser("verify", help="build a flake attribute, propagating exit code")
-    p_v.add_argument("--attr", required=True)
+    p_v = sub.add_parser(
+        "verify", help="build flake attributes, propagating exit code"
+    )
+    p_v.add_argument(
+        "--attr", required=True, nargs="+",
+        help="one or more attrs; they build together, and a failed batch is "
+             "re-run per attr so each gets its own verdict",
+    )
     p_v.add_argument("--flake-root", default=None)
     p_v.set_defaults(func=cmd_verify)
 
