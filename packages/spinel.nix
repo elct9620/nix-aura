@@ -17,7 +17,7 @@ let
     hash = "sha256-4jf9SXh/smW/DzifLw9XiP3N8fSbtUtPeVLOqQQWKgc=";
   };
 
-  rev = "5a63653cf61345efe4e0b8ed32103b63e8b8e708";
+  rev = "31aa6e808f364b09c332f73a01ff9a341701df5f";
 in
 stdenv.mkDerivation rec {
   pname = "spinel";
@@ -28,7 +28,7 @@ stdenv.mkDerivation rec {
     owner = "matz";
     repo = "spinel";
     inherit rev;
-    hash = "sha256-auNkdE3/Hihz8hWOMhOI7IwyHV4OyGMFVJLge/prNO0=";
+    hash = "sha256-rB/zmBBdnENsMTiGeWmE6Izcv1hyjRQa2CwsWk1mE0Y=";
   };
 
   nativeBuildInputs = [ makeWrapper ];
@@ -71,12 +71,6 @@ stdenv.mkDerivation rec {
   # with so a generated binary does not depend on the user's environment.
   # spin additionally drives git for its package index and git dependencies.
   postInstall = ''
-    # The install rule enumerates headers by name and has fallen behind lib/:
-    # spinel_rt.h includes sp_process_status.h unconditionally, but install
-    # never copies it, so an installed toolchain compiles nothing at all.
-    # Drop this once upstream's install rule covers the header (matz/spinel#4186).
-    install -m 644 lib/sp_process_status.h $out/lib/spinel/lib/
-
     wrapProgram $out/lib/spinel/spinel \
       --prefix PATH : ${lib.makeBinPath [ stdenv.cc ]}
     wrapProgram $out/lib/spinel/spin \
