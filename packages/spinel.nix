@@ -71,10 +71,30 @@ stdenv.mkDerivation rec {
   # with so a generated binary does not depend on the user's environment.
   # spin additionally drives git for its package index and git dependencies.
   postInstall = ''
+    # The install rule enumerates headers by name and has fallen behind lib/:
+    # spinel_rt.h includes sp_process_status.h unconditionally, but install
+    # never copies it, so an installed toolchain compiles nothing at all.
+    # Drop this once upstream's install rule covers the header (matz/spinel#4186).
+    install -m 644 lib/sp_process_status.h $out/lib/spinel/lib/
+
     wrapProgram $out/lib/spinel/spinel \
       --prefix PATH : ${lib.makeBinPath [ stdenv.cc ]}
     wrapProgram $out/lib/spinel/spin \
       --prefix PATH : ${lib.makeBinPath [ stdenv.cc git ]}
+  '';
+
+  # A spinel that builds is not yet a spinel that works: the compiler reaches
+  # for the runtime headers of its own install, so a header the install left
+  # behind fails no build here and every build afterwards. Compile and run the
+  # smallest possible program through the installed toolchain to catch that.
+  doInstallCheck = true;
+  installCheckPhase = ''
+    runHook preInstallCheck
+    export HOME=$TMPDIR
+    workdir=$(mktemp -d)
+    echo 'puts "ok"' > $workdir/hello.rb
+    (cd $workdir && $out/bin/spinel hello.rb -o hello && ./hello)
+    runHook postInstallCheck
   '';
 
   meta = with lib; {
