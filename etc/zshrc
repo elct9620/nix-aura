@@ -67,8 +67,8 @@ typeset -TUx PKG_CONFIG_PATH pkg_config_path :
 [ -d $NIX_PROFILE/lib/pkgconfig ] && pkg_config_path=($NIX_PROFILE/lib/pkgconfig $pkg_config_path)
 
 # Godot
-[ -f $HOME/Library/Application\ Support/Steam/steamapps/common/Godot\ Engine/Godot.app/Contents/MacOS/Godot ] && alias godot="$HOME/Library/Application\ Support/Steam/steamapps/common/Godot\ Engine/Godot.app/Contents/MacOS/Godot"
-[ -f $HOME/Library/Application\ Support/Steam/steamapps/common/Godot\ Engine/Godot.app/Contents/MacOS/Godot ] && alias gut='godot --debug-collisions --path $PWD -d -s addons/gut/gut_cmdln.gd'
+[ -f $HOME/Library/Application\ Support/Steam/steamapps/common/Godot\ Engine/Godot.app/Contents/MacOS/Godot ] && alias steam-godot="$HOME/Library/Application\ Support/Steam/steamapps/common/Godot\ Engine/Godot.app/Contents/MacOS/Godot"
+[ -f $HOME/Library/Application\ Support/Steam/steamapps/common/Godot\ Engine/Godot.app/Contents/MacOS/Godot ] && alias steam-gut='steam-godot --debug-collisions --path $PWD -d -s addons/gut/gut_cmdln.gd'
 
 # Nix
 # nix-direnv's direnvrc is read by direnv, not by the shell -- it is linked into
