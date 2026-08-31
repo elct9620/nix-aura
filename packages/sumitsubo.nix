@@ -7,6 +7,7 @@ let
   runtimeVersion = "v0.26.12";
   rubyVersion = "v0.23.1";
   rustVersion = "v0.24.2";
+  markdownVersion = "v0.5.3";
 
   treeSitter = fetchFromGitHub {
     owner = "tree-sitter";
@@ -28,16 +29,25 @@ let
     rev = rustVersion;
     hash = "sha256-Ls6tB6IxXDQDWwx0BJ7RgbheelC4MH8z97E7wwhkDcY=";
   };
+
+  # One repository, two grammars: the block grammar for a specification's
+  # structure, and the inline one for the text a block-level node holds.
+  treeSitterMarkdown = fetchFromGitHub {
+    owner = "tree-sitter-grammars";
+    repo = "tree-sitter-markdown";
+    rev = markdownVersion;
+    hash = "sha256-WUVN7+lzDI+VC5PuJjhHiS4JpVr1x0Ic30i2tVrI6W8=";
+  };
 in
 stdenv.mkDerivation rec {
   pname = "sumitsubo";
-  version = "0.1.0-preview4";
+  version = "0.1.0-preview5";
 
   src = fetchFromGitHub {
     owner = "elct9620";
     repo = "sumitsubo";
     rev = "v${version}";
-    hash = "sha256-jCm4Wd3py+JhZGv409xLpLQqcuEA+xXpimIHiE5UvJ4=";
+    hash = "sha256-ANWR7ekmgw551bu4DJjAVlZxf/LgwGY06Dp1xWMUm6Y=";
   };
 
   nativeBuildInputs = [ spinel ];
@@ -55,6 +65,7 @@ stdenv.mkDerivation rec {
     check RUNTIME ${runtimeVersion}
     check RUBY ${rubyVersion}
     check RUST ${rustVersion}
+    check MARKDOWN ${markdownVersion}
 
     # vendor.sh skips a fetch whose stamp already names the pinned tag, so
     # staging the sources with their stamps leaves it doing only the part that
@@ -64,9 +75,11 @@ stdenv.mkDerivation rec {
     cp -r --no-preserve=mode ${treeSitter} vendor/tree-sitter
     cp -r --no-preserve=mode ${treeSitterRuby} vendor/tree-sitter-ruby
     cp -r --no-preserve=mode ${treeSitterRust} vendor/tree-sitter-rust
+    cp -r --no-preserve=mode ${treeSitterMarkdown} vendor/tree-sitter-markdown
     echo ${runtimeVersion} > vendor/tree-sitter.pin
     echo ${rubyVersion} > vendor/tree-sitter-ruby.pin
     echo ${rustVersion} > vendor/tree-sitter-rust.pin
+    echo ${markdownVersion} > vendor/tree-sitter-markdown.pin
     ./scripts/vendor.sh
 
     # The revision the executable answers for is read from git, and a source
@@ -75,7 +88,7 @@ stdenv.mkDerivation rec {
     # revision of the tag this derivation fetches.
     substituteInPlace scripts/build_rev.sh \
       --replace-fail 'rev=$(git -C "$root" rev-parse --short=7 HEAD 2>/dev/null || echo unknown)' \
-                     'rev=9661e8b'
+                     'rev=b4b434e'
     ./scripts/build_rev.sh
   '';
 
