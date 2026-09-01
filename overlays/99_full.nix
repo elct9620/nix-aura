@@ -13,6 +13,7 @@ with super;
       auraNode
       auraRust
       auraJava
+      auraGodot
       auraTemplateCmd
     ];
   };
