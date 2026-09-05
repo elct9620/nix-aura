@@ -131,11 +131,11 @@
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1788453585,
-        "narHash": "sha256-FOoM+kAdwTUgsC177FI3Kq2UVT1bP1igGpFclAbW+c8=",
+        "lastModified": 1788540402,
+        "narHash": "sha256-0LXOXR/LOh0oLGtrfkW7vJc/FFKssi5/FvXpkHhHWFI=",
         "owner": "sysprog21",
         "repo": "zhtw-mcp",
-        "rev": "76d842e7322c816dd936d52c9cc173c6b014690a",
+        "rev": "3e7b7bfc38ba729b4bb59b090bdac3a9d8647424",
         "type": "github"
       },
       "original": {
