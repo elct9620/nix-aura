@@ -1,12 +1,16 @@
 { pkgs ? import <nixpkgs> { } }:
 with pkgs;
 let
-  # `scripts/vendor.sh` curls the tree-sitter runtime and two grammars; the
-  # sandbox has no network, so fetch them as fixed-output inputs and lay them
-  # down where the script expects before it looks.
+  # `scripts/vendor.sh` curls the tree-sitter runtime and every grammar it
+  # pins; the sandbox has no network, so fetch them as fixed-output inputs and
+  # lay them down where the script expects before it looks.
   runtimeVersion = "v0.26.12";
   rubyVersion = "v0.23.1";
   rustVersion = "v0.24.2";
+  goVersion = "v0.25.0";
+  pythonVersion = "v0.25.0";
+  javascriptVersion = "v0.25.0";
+  typescriptVersion = "v0.23.2";
   markdownVersion = "v0.5.3";
 
   treeSitter = fetchFromGitHub {
@@ -30,6 +34,36 @@ let
     hash = "sha256-Ls6tB6IxXDQDWwx0BJ7RgbheelC4MH8z97E7wwhkDcY=";
   };
 
+  treeSitterGo = fetchFromGitHub {
+    owner = "tree-sitter";
+    repo = "tree-sitter-go";
+    rev = goVersion;
+    hash = "sha256-y7bTET8ypPczPnMVlCaiZuswcA7vFrDOc2jlbfVk5Sk=";
+  };
+
+  treeSitterPython = fetchFromGitHub {
+    owner = "tree-sitter";
+    repo = "tree-sitter-python";
+    rev = pythonVersion;
+    hash = "sha256-F5XH21PjPpbwYylgKdwD3MZ5o0amDt4xf/e5UikPcxY=";
+  };
+
+  treeSitterJavascript = fetchFromGitHub {
+    owner = "tree-sitter";
+    repo = "tree-sitter-javascript";
+    rev = javascriptVersion;
+    hash = "sha256-2Jj/SUG+k8lHlGSuPZvHjJojvQFgDiZHZzH8xLu7suE=";
+  };
+
+  # One repository, two grammars: the language itself, and the one that reads
+  # JSX alongside it.
+  treeSitterTypescript = fetchFromGitHub {
+    owner = "tree-sitter";
+    repo = "tree-sitter-typescript";
+    rev = typescriptVersion;
+    hash = "sha256-CU55+YoFJb6zWbJnbd38B7iEGkhukSVpBN7sli6GkGY=";
+  };
+
   # One repository, two grammars: the block grammar for a specification's
   # structure, and the inline one for the text a block-level node holds.
   treeSitterMarkdown = fetchFromGitHub {
@@ -41,13 +75,13 @@ let
 in
 stdenv.mkDerivation rec {
   pname = "sumitsubo";
-  version = "0.1.0-preview7";
+  version = "0.1.0-preview8";
 
   src = fetchFromGitHub {
     owner = "elct9620";
     repo = "sumitsubo";
     rev = "v${version}";
-    hash = "sha256-Sla9GXVfhpkAeAmUoYFenMR8am0om9XcOSERH0aFGQo=";
+    hash = "sha256-z7ohtXurY1AQmuZL41WvqqBXghw0YGN6s9ZobrhneH8=";
   };
 
   nativeBuildInputs = [ spinel ];
@@ -65,6 +99,10 @@ stdenv.mkDerivation rec {
     check RUNTIME ${runtimeVersion}
     check RUBY ${rubyVersion}
     check RUST ${rustVersion}
+    check GO ${goVersion}
+    check PYTHON ${pythonVersion}
+    check JAVASCRIPT ${javascriptVersion}
+    check TYPESCRIPT ${typescriptVersion}
     check MARKDOWN ${markdownVersion}
 
     # vendor.sh skips a fetch whose stamp already names the pinned tag, so
@@ -75,10 +113,18 @@ stdenv.mkDerivation rec {
     cp -r --no-preserve=mode ${treeSitter} vendor/tree-sitter
     cp -r --no-preserve=mode ${treeSitterRuby} vendor/tree-sitter-ruby
     cp -r --no-preserve=mode ${treeSitterRust} vendor/tree-sitter-rust
+    cp -r --no-preserve=mode ${treeSitterGo} vendor/tree-sitter-go
+    cp -r --no-preserve=mode ${treeSitterPython} vendor/tree-sitter-python
+    cp -r --no-preserve=mode ${treeSitterJavascript} vendor/tree-sitter-javascript
+    cp -r --no-preserve=mode ${treeSitterTypescript} vendor/tree-sitter-typescript
     cp -r --no-preserve=mode ${treeSitterMarkdown} vendor/tree-sitter-markdown
     echo ${runtimeVersion} > vendor/tree-sitter.pin
     echo ${rubyVersion} > vendor/tree-sitter-ruby.pin
     echo ${rustVersion} > vendor/tree-sitter-rust.pin
+    echo ${goVersion} > vendor/tree-sitter-go.pin
+    echo ${pythonVersion} > vendor/tree-sitter-python.pin
+    echo ${javascriptVersion} > vendor/tree-sitter-javascript.pin
+    echo ${typescriptVersion} > vendor/tree-sitter-typescript.pin
     echo ${markdownVersion} > vendor/tree-sitter-markdown.pin
     ./scripts/vendor.sh
 
@@ -88,7 +134,7 @@ stdenv.mkDerivation rec {
     # revision of the tag this derivation fetches.
     substituteInPlace scripts/build_rev.sh \
       --replace-fail 'rev=$(git -C "$root" rev-parse --short=7 HEAD 2>/dev/null || echo unknown)' \
-                     'rev=f610d2a'
+                     'rev=d3208e5'
     ./scripts/build_rev.sh
   '';
 
