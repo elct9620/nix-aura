@@ -2,7 +2,7 @@
 with pkgs;
 rustPlatform.buildRustPackage rec {
   pname = "agent-browser";
-  version = "0.36.0";
+  version = "0.37.0";
 
   src = fetchFromGitHub {
     owner = "vercel-labs";
@@ -10,13 +10,13 @@ rustPlatform.buildRustPackage rec {
     rev = "v${version}";
     # NOTE: Calculate sha256
     # make agent-browser
-    sha256 = "sha256-HzX1M1Gdd9N0iYxiEGuWrV3fc7yNevGiOvc/0csttZA=";
+    sha256 = "sha256-tC3gMLSd2kuuYUxTx8/RwbW1Fz8IiXRLbejrTeA65LI=";
   };
 
   cargoRoot = "cli";
   buildAndTestSubdir = "cli";
 
-  cargoHash = "sha256-6xphNOYi+tJvFlprY8DCVw1XzVFapqFQfeIy0w2pyCs=";
+  cargoHash = "sha256-33/ggSX4hTypwh06KDVso2Z/J9ZewRL9ng3aDw3V4e8=";
 
   nativeBuildInputs = [ pkg-config ];
 
