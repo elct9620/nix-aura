@@ -43,6 +43,15 @@ mkdir -p ~/.config/direnv
 ln -s $HOME/.nix-profile/share/nix-direnv/direnvrc ~/.config/direnv/direnvrc
 ```
 
+Link the Godot export templates so the editor uses the nix-pinned build instead of downloading its own copy
+
+```bash
+rm -rf ~/Library/Application\ Support/Godot/export_templates
+ln -s $HOME/.nix-profile/share/godot/export_templates ~/Library/Application\ Support/Godot/export_templates
+```
+
+> The editor recreates that directory on first launch, so it has to be removed before linking, otherwise the link lands inside it. Linking the directory itself, rather than the version inside it, keeps the link correct across Godot upgrades.
+
 ## Upgrade
 
 Find installed profile
