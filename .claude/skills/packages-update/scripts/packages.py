@@ -2,7 +2,8 @@
 """Batch helper for updating this repo's Nix dependencies.
 
 Two kinds of dependency live here and both go stale:
-  - packages/*.nix   derivations pinning a GitHub tag via fetchFromGitHub
+  - packages/*.nix   derivations pinning a GitHub tag via fetchFromGitHub, or
+                     a GitHub release asset via fetchurl
   - flake inputs     other flakes pinned by rev in flake.lock
 
 Subcommands:
@@ -10,6 +11,7 @@ Subcommands:
   check           Compare packages against releases and flake inputs against
                   their upstream branch heads.
   prefetch        Compute the source sha256 for a given owner/repo/rev.
+  prefetch-url    Compute the sha256 of a release asset.
   update-source   Rewrite a package's version and source sha256.
   cargo-hash      Build the package via the flake to discover the real cargoHash.
   update-cargo    Rewrite a package's cargoHash.
@@ -41,7 +43,11 @@ OWNER_RE = re.compile(r'owner\s*=\s*"([^"]+)"')
 REPO_RE = re.compile(r'repo\s*=\s*"([^"]+)"')
 REV_RE = re.compile(r'rev\s*=\s*"([^"]+)"')
 SRC_HASH_RE = re.compile(r'(hash|sha256)\s*=\s*"([^"]+)"')
-SRC_BLOCK_RE = re.compile(r"src\s*=\s*fetchFromGitHub\s*\{")
+SRC_BLOCK_RE = re.compile(r"src\s*=\s*(fetchFromGitHub|fetchurl)\s*\{")
+URL_RE = re.compile(r'url\s*=\s*"([^"]+)"')
+RELEASE_ASSET_RE = re.compile(
+    r"^https://github\.com/([^/]+)/([^/]+)/releases/download/([^/]+)/"
+)
 VERSION_ASSIGN_RE = re.compile(r'version\s*=\s*"[^"]+"')
 CARGO_HASH_RE = re.compile(r'cargoHash\s*=\s*"([^"]+)"')
 GOT_HASH_RE = re.compile(r"got:\s*(sha256-[A-Za-z0-9+/=]+)")
@@ -147,8 +153,8 @@ def brace_span(content: str, open_index: int) -> tuple[int, int]:
     raise SystemExit(f"unbalanced braces starting at offset {open_index}")
 
 
-def src_block_span(content: str) -> tuple[int, int] | None:
-    """Span of the `src = fetchFromGitHub { ... }` the package is built from.
+def src_block(content: str) -> tuple[str, tuple[int, int]] | None:
+    """Fetcher and span of the `src = <fetcher> { ... }` the package is built from.
 
     A file may carry several such fetches -- vendored sources a build cannot
     reach the network for, or a dependency built alongside -- so the last one
@@ -158,7 +164,61 @@ def src_block_span(content: str) -> tuple[int, int] | None:
     matches = list(SRC_BLOCK_RE.finditer(content))
     if not matches:
         return None
-    return brace_span(content, matches[-1].end() - 1)
+    last = matches[-1]
+    return last.group(1), brace_span(content, last.end() - 1)
+
+
+def src_block_span(content: str) -> tuple[int, int] | None:
+    found = src_block(content)
+    return found[1] if found is not None else None
+
+
+def tag_source(block: str) -> tuple[dict | None, str | None]:
+    """Where a fetchFromGitHub src comes from: owner, repo, and its tag."""
+    owner = OWNER_RE.search(block)
+    repo = REPO_RE.search(block)
+    rev = REV_RE.search(block)
+
+    if owner is None or repo is None:
+        return None, "src block names no owner/repo"
+    if rev is None:
+        return None, "src rev is not a literal (`inherit rev`), so no tag to compare"
+    if "${version}" not in rev.group(1):
+        return None, "src pins a revision rather than a tag; check it by hand"
+    return {
+        "owner": owner.group(1),
+        "repo": repo.group(1),
+        "rev_template": rev.group(1),
+        "asset_url": None,
+    }, None
+
+
+def release_asset_source(block: str) -> tuple[dict | None, str | None]:
+    """Where a fetchurl src comes from, when it is a GitHub release asset.
+
+    The tag is the path segment after `releases/download/`, so the same
+    `rev_template` conventions as a fetchFromGitHub tag apply to it. The URL
+    is kept so `check` can name the asset of the latest release; only
+    `${version}` and `${pname}` can be filled in, so anything else
+    interpolated leaves the asset unnameable.
+    """
+    url = URL_RE.search(block)
+    if url is None:
+        return None, "src fetchurl has no literal url"
+    m = RELEASE_ASSET_RE.match(url.group(1))
+    if m is None:
+        return None, "src is a fetchurl outside GitHub release assets"
+    owner, repo, tag = m.groups()
+    if "${version}" not in tag:
+        return None, "release asset url pins a tag rather than following version; check it by hand"
+    if "${" in url.group(1).replace("${version}", "").replace("${pname}", ""):
+        return None, "release asset url interpolates more than version/pname"
+    return {
+        "owner": owner,
+        "repo": repo,
+        "rev_template": tag,
+        "asset_url": url.group(1),
+    }, None
 
 
 def parse_package(path: Path) -> tuple[dict | None, str | None]:
@@ -174,28 +234,26 @@ def parse_package(path: Path) -> tuple[dict | None, str | None]:
     """
     content = path.read_text()
 
-    span = src_block_span(content)
-    if span is None:
+    found = src_block(content)
+    if found is None:
         if FETCH_MARKER_RE.search(content):
             return None, "fetches from GitHub, but not as the derivation's own src"
         return None, "no GitHub source"
+    fetcher, span = found
     block = content[span[0] : span[1]]
 
-    owner = OWNER_RE.search(block)
-    repo = REPO_RE.search(block)
-    rev = REV_RE.search(block)
+    if fetcher == "fetchurl":
+        source, reason = release_asset_source(block)
+    else:
+        source, reason = tag_source(block)
     src_hash = SRC_HASH_RE.search(block)
     pname = last_before(PNAME_RE, content, span[0])
     version = last_before(VERSION_RE, content, span[0])
 
-    if owner is None or repo is None:
-        return None, "src block names no owner/repo"
+    if source is None:
+        return None, reason
     if src_hash is None:
         return None, "src block carries no hash"
-    if rev is None:
-        return None, "src rev is not a literal (`inherit rev`), so no tag to compare"
-    if "${version}" not in rev.group(1):
-        return None, "src pins a revision rather than a tag; check it by hand"
     if pname is None or version is None:
         return None, "no pname/version declared ahead of the src block"
 
@@ -206,9 +264,7 @@ def parse_package(path: Path) -> tuple[dict | None, str | None]:
         "file": str(path),
         "pname": pname,
         "version": version,
-        "owner": owner.group(1),
-        "repo": repo.group(1),
-        "rev_template": rev.group(1),
+        **source,
         "sha256": src_hash.group(2),
         "cargo_hash": cargo.group(1) if cargo is not None else None,
     }, None
@@ -257,11 +313,14 @@ def cmd_scan(args: argparse.Namespace) -> int:
     return 0
 
 
-def latest_release_tag(owner: str, repo: str) -> tuple[str, str] | None:
+def latest_release_tag(
+    owner: str, repo: str, releases_only: bool = False
+) -> tuple[str, str] | None:
     """Return (tag, source) — source is 'release' or 'tag'.
 
     Falls back to the latest git tag when a repo doesn't publish GitHub
-    Releases (some upstreams tag but never cut a release object).
+    Releases (some upstreams tag but never cut a release object) -- unless
+    the source is a release asset, which a bare tag does not carry.
     """
     proc = run(
         [
@@ -278,6 +337,8 @@ def latest_release_tag(owner: str, repo: str) -> tuple[str, str] | None:
     )
     if proc.returncode == 0 and proc.stdout.strip():
         return proc.stdout.strip(), "release"
+    if releases_only:
+        return None
 
     proc = run(
         [
@@ -497,7 +558,10 @@ def cmd_check(args: argparse.Namespace) -> int:
             else None
         )
         results = parallel_map(
-            lambda m: latest_release_tag(m["owner"], m["repo"]), metas
+            lambda m: latest_release_tag(
+                m["owner"], m["repo"], releases_only=m["asset_url"] is not None
+            ),
+            metas,
         )
         attrs = attrs_job.result() if attrs_job is not None else set()
 
@@ -509,22 +573,29 @@ def cmd_check(args: argparse.Namespace) -> int:
                     "latest_tag": None,
                     "latest_version": None,
                     "outdated": None,
-                    "error": "no release or tag found via gh",
+                    "error": "no release found via gh"
+                    if meta["asset_url"] is not None
+                    else "no release or tag found via gh",
                 }
             )
             continue
 
         tag, source = result
         latest_version = derive_version_from_tag(tag, meta["rev_template"])
-        rows.append(
-            {
-                **meta,
-                "latest_tag": tag,
-                "latest_tag_source": source,
-                "latest_version": latest_version,
-                "outdated": latest_version != meta["version"],
-            }
-        )
+        row = {
+            **meta,
+            "latest_tag": tag,
+            "latest_tag_source": source,
+            "latest_version": latest_version,
+            "outdated": latest_version != meta["version"],
+        }
+        if meta["asset_url"] is not None:
+            row["latest_asset_url"] = (
+                meta["asset_url"]
+                .replace("${version}", latest_version)
+                .replace("${pname}", meta["pname"])
+            )
+        rows.append(row)
 
     out: dict = {"packages": rows, "skipped": skipped}
     if not args.no_flake:
@@ -551,6 +622,19 @@ def cmd_prefetch(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_prefetch_url(args: argparse.Namespace) -> int:
+    """Hash a release asset as fetchurl will: the file itself, not unpacked."""
+    proc = run(
+        ["nix", "store", "prefetch-file", "--json", args.url,
+         "--extra-experimental-features", "nix-command"]
+    )
+    if proc.returncode != 0:
+        sys.stderr.write(proc.stderr)
+        return proc.returncode
+    sys.stdout.write(json.loads(proc.stdout)["hash"] + "\n")
+    return 0
+
+
 def verify_parses(path: Path) -> None:
     """Sanity-check that the edited .nix file still parses.
 
@@ -573,7 +657,7 @@ def cmd_update_source(args: argparse.Namespace) -> int:
     # under whichever of the two attribute names the file already uses.
     span = src_block_span(content)
     if span is None:
-        raise SystemExit("could not find a src = fetchFromGitHub block")
+        raise SystemExit("could not find a src = fetchFromGitHub/fetchurl block")
 
     versions = [m for m in VERSION_ASSIGN_RE.finditer(content) if m.start() < span[0]]
     if not versions:
@@ -665,7 +749,7 @@ def rewrite_cargo_hash(content: str, value: str) -> str:
     """Rewrite the cargoHash of the derivation the src block identifies."""
     span = src_block_span(content)
     if span is None:
-        raise SystemExit("could not find a src = fetchFromGitHub block")
+        raise SystemExit("could not find a src = fetchFromGitHub/fetchurl block")
     m = first_after(CARGO_HASH_RE, content, span[0])
     if m is None:
         raise SystemExit("could not find cargoHash after the src block")
@@ -772,6 +856,10 @@ def build_parser() -> argparse.ArgumentParser:
     p_pref.add_argument("repo")
     p_pref.add_argument("rev")
     p_pref.set_defaults(func=cmd_prefetch)
+
+    p_prefu = sub.add_parser("prefetch-url", help="compute release asset sha256")
+    p_prefu.add_argument("url")
+    p_prefu.set_defaults(func=cmd_prefetch_url)
 
     p_us = sub.add_parser("update-source", help="rewrite version + source sha256")
     p_us.add_argument("--file", required=True)

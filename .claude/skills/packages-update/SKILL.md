@@ -9,7 +9,7 @@ This repo pins its dependencies in two places, and both go stale:
 
 | Where | What it pins | How it moves |
 |---|---|---|
-| `packages/*.nix` | a GitHub tag, via `fetchFromGitHub` | edit `version` + `sha256` (+ `cargoHash` for Rust) |
+| `packages/*.nix` | a GitHub tag, via `fetchFromGitHub`, or a GitHub release asset, via `fetchurl` | edit `version` + `sha256` (+ `cargoHash` for Rust) |
 | `flake.lock` | another flake's commit | `nix flake update <input>` |
 
 Only the first is visible when reading `packages/`, which is exactly why the second gets forgotten — a flake input can sit months behind without anything in the working tree looking wrong. `check` covers both, so start there regardless of which kind the user named.
@@ -26,12 +26,12 @@ If the user only wants to check, stop after `check`. If they want to update, con
 
 `nix-update` is widely used in nixpkgs but is third-party with a large surface (end-to-end version detection + file rewriting + build orchestration in one binary). The script here is intentionally narrow:
 
-- Only handles `fetchFromGitHub` (the only fetcher this repo uses)
+- Only handles `fetchFromGitHub`, and `fetchurl` of a GitHub release asset (the only fetchers this repo builds packages from)
 - All file-editing logic lives in auditable Python
-- Third-party tools it calls (`gh`, `nix-prefetch-github`, `nix build`, `nix-instantiate`) each have narrow scope
+- Third-party tools it calls (`gh`, `nix-prefetch-github`, `nix store prefetch-file`, `nix build`, `nix-instantiate`) each have narrow scope
 - Every edit is followed by `nix-instantiate --parse` to catch breakage early
 
-If the repo grows fetchers (`fetchCrate`, `fetchurl`) or dep-hash kinds (`vendorHash`, `npmDepsHash`), extend `scripts/packages.py` rather than reaching for `nix-update`.
+If the repo grows fetchers (`fetchCrate`, `fetchurl` from anywhere but GitHub releases) or dep-hash kinds (`vendorHash`, `npmDepsHash`), extend `scripts/packages.py` rather than reaching for `nix-update`.
 
 ## Workflow
 
@@ -43,7 +43,7 @@ python3 .claude/skills/packages-update/scripts/packages.py check
 
 Prints JSON with two arrays.
 
-`packages` — one entry per GitHub-sourced file under `packages/`, with `version`, `latest_version`, `outdated`, and `cargo_hash` (non-null means the Rust path). A file is read as the derivation it packages: identity and source come from the last `src = fetchFromGitHub` block and the `pname`/`version` declared ahead of it, so whatever else the file fetches — vendored sources a sandboxed build cannot reach the network for, a dependency built alongside — is not mistaken for the package. A source pinned by `rev` rather than by tag stays out — the tag comparison cannot say anything about it — as does a file with no GitHub source at all. Neither disappears: `skipped` lists every such file with the reason, and reading it is what catches a package that has quietly stopped being compared, which is how `packages/sumitsubo.nix` went unnoticed until it was looked for. `packages/spinel.nix` belongs there and is checked by hand. A `latest_version: null` with an `error` means the upstream publishes neither releases nor tags.
+`packages` — one entry per GitHub-sourced file under `packages/`, with `version`, `latest_version`, `outdated`, and `cargo_hash` (non-null means the Rust path). A file is read as the derivation it packages: identity and source come from the last `src = fetchFromGitHub` or `src = fetchurl` block and the `pname`/`version` declared ahead of it, so whatever else the file fetches — vendored sources a sandboxed build cannot reach the network for, a dependency built alongside — is not mistaken for the package. A `fetchurl` source counts only when its URL is a GitHub release asset (`github.com/<owner>/<repo>/releases/download/<tag>/…`); its entry carries `asset_url`, and `check` adds `latest_asset_url` — the same URL for the latest release, ready to prefetch. Only a release can carry an asset, so such a package is compared against releases alone, never against a bare tag. A source pinned by `rev` rather than by tag stays out — the tag comparison cannot say anything about it — as does a file with no GitHub source at all. Neither disappears: `skipped` lists every such file with the reason, and reading it is what catches a package that has quietly stopped being compared, which is how `packages/sumitsubo.nix` went unnoticed until it was looked for. `packages/spinel.nix` belongs there and is checked by hand. A `latest_version: null` with an `error` means the upstream publishes neither releases nor tags.
 
 `flake_inputs` — one entry per *direct* input in `flake.lock`, tagged with `kind`:
 
@@ -73,6 +73,12 @@ One package at a time keeps commits clean and lets the user bail mid-batch. A pa
 
 ```bash
 python3 .claude/skills/packages-update/scripts/packages.py prefetch <OWNER> <REPO> <LATEST_TAG>
+```
+
+For a release asset (`asset_url` non-null), hash the file itself instead — `fetchurl` stores it as downloaded, so the unpacked-tree hash `prefetch` gives would not match:
+
+```bash
+python3 .claude/skills/packages-update/scripts/packages.py prefetch-url <LATEST_ASSET_URL>
 ```
 
 **Rewrite version + sha256:**
@@ -171,6 +177,7 @@ Summarize what moved, what was already current, and what was deliberately left a
 | `scan` | List GitHub-sourced packages with metadata, and what was skipped and why | None — pure read |
 | `check [--no-flake]` | Packages vs latest release, flake inputs vs upstream head; lookups run concurrently, so runtime tracks the slowest query rather than the number of packages | None — pure read (network, plus one `nix eval`) |
 | `prefetch OWNER REPO REV` | Source sha256 for a ref | None — pure read (network) |
+| `prefetch-url URL` | sha256 of a release asset, as `fetchurl` stores it | Adds the file to the store |
 | `update-source --file --version --sha256` | Rewrite version + sha256 | Edits file; verifies parse |
 | `cargo-hash --file` | Discover the real cargoHash via a controlled build failure | Builds; restores the file before returning |
 | `update-cargo --file --cargo-hash` | Rewrite cargoHash | Edits file; verifies parse |
@@ -182,6 +189,7 @@ Summarize what moved, what was already current, and what was deliberately left a
   - `rev = "${version}"` — the tag *is* the version (`v20260716`, `1.27.1`)
   - `rev = "v${version}"` — the tag prefixes `v`, the version drops it (`0.34.0` → `v0.34.0`)
   - `derive_version_from_tag` handles both; don't second-guess it
+  - A release asset's tag is the URL segment after `releases/download/`, and follows the same two templates
 - Version detection tries `gh release view` first, then `gh api .../tags`. `latest_tag_source` in the output says which matched
 - Commit messages use `pname`, not the file basename — they coincide today, but the script reads `pname` for a reason
 - `check` classifies an input as `app` when its name matches a `packages.<system>` attribute. Adding a new input that ships a binary means also exposing it under `packages` in `flake.nix`, which is what makes it verifiable
