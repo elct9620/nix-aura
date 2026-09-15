@@ -1,62 +1,30 @@
 { pkgs ? import <nixpkgs> { } }:
 with pkgs;
-let
-  # `make deps` curls these two gems for their bundled C sources; the sandbox
-  # has no network, so fetch them as fixed-output inputs and stage vendor/
-  # before make looks at it.
-  prismVersion = "1.9.0";
-  rbsVersion = "4.0.1";
-
-  prismGem = fetchurl {
-    url = "https://rubygems.org/gems/prism-${prismVersion}.gem";
-    hash = "sha256-e1MMap+SwkMAAUkZydy8BVv0zfUewwrtCZsGzWZ074U=";
-  };
-
-  rbsGem = fetchurl {
-    url = "https://rubygems.org/gems/rbs-${rbsVersion}.gem";
-    hash = "sha256-4jf9SXh/smW/DzifLw9XiP3N8fSbtUtPeVLOqQQWKgc=";
-  };
-
-  rev = "4029cfff364a93910f12ac035f4c085d313a1a2e";
-in
 stdenv.mkDerivation rec {
   pname = "spinel";
-  # Upstream publishes no releases; pinned to a master commit.
-  version = "0-unstable-2026-09-08";
+  version = "2026.09.12";
 
-  src = fetchFromGitHub {
-    owner = "matz";
-    repo = "spinel";
-    inherit rev;
-    hash = "sha256-lALcfb51TKAYWOXdGMAcHqR3QuuTl94hTONBeVQC0ho=";
+  # The release tarball (`make dist`), not the tag's source archive: it vendors
+  # prism and rbs so `make deps` needs no network, and records in .spinel-dist
+  # the revision and release a git-less tree cannot derive.
+  src = fetchurl {
+    url = "https://github.com/matz/spinel/releases/download/${version}/spinel-${version}.tar.xz";
+    hash = "sha256-G7omnPyABLzWC3VHHNROrM3Gbu1gsfY20TZ8iXx2Snc=";
   };
 
   nativeBuildInputs = [ makeWrapper ];
 
-  # Fail loudly rather than silently building against the wrong parser if
-  # upstream moves either version.
+  # This release's Makefile still reads the revision and release from git, so
+  # the build would record "unknown" / "unreleased" -- and spin reads the
+  # revision back as the toolchain key its probe records are stored under,
+  # where "unknown" means no key at all. Mirror upstream 7e938c31, which falls
+  # back to .spinel-dist; drop this once a release ships with that change.
   postPatch = ''
-    check() {
-      pinned=$(sed -n "s/^$1 ?= //p" Makefile)
-      if [ "$pinned" != "$2" ]; then
-        echo "error: Makefile pins $1 $pinned, but this derivation fetches $2." >&2
-        exit 1
-      fi
-    }
-    check PRISM_VERSION ${prismVersion}
-    check RBS_VERSION ${rbsVersion}
-
-    # The Makefile reads the build revision from git for `spinel --version`.
-    # A source tarball carries no .git, so the build would record "unknown" --
-    # and spin reads that string back as the toolchain version keying its probe
-    # records, where "unknown" means "no version at all". Hand it the pinned rev.
     substituteInPlace Makefile \
       --replace-fail 'git rev-parse --short=12 HEAD 2>/dev/null || echo unknown' \
-                     'echo ${builtins.substring 0 12 rev}'
-
-    mkdir -p vendor/prism vendor/rbs
-    tar -xf ${prismGem} -O data.tar.gz | tar -xz -C vendor/prism
-    tar -xf ${rbsGem} -O data.tar.gz | tar -xz -C vendor/rbs
+                     'git rev-parse --short=12 HEAD 2>/dev/null' \
+      --replace-fail 'case "$$d" in' \
+                     'if [ -z "$$r" ] && [ -f .spinel-dist ]; then r=$$(sed -n 1p .spinel-dist); d=$$(sed -n 2p .spinel-dist); fi; [ -n "$$r" ] || r=unknown; case "$$d" in'
   '';
 
   makeFlags = [ "PREFIX=${placeholder "out"}" ];
