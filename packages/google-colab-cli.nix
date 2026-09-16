@@ -63,7 +63,7 @@ let
 in
 python3Packages.buildPythonApplication rec {
   pname = "google-colab-cli";
-  version = "0.7.0";
+  version = "0.7.1";
   pyproject = true;
 
   src = fetchFromGitHub {
@@ -72,7 +72,7 @@ python3Packages.buildPythonApplication rec {
     rev = "v${version}";
     # NOTE: Calculate sha256
     # make google-colab-cli
-    sha256 = "sha256-zo7jgfPi5YbQScnBg/NcjASRpuVWusE/TV3xPeCqyWk=";
+    sha256 = "sha256-+Zq8Kl5BBGqB92xVnnl4uPPEg/Qm/YEjDvGFJuhH9qY=";
   };
 
   build-system = with python3Packages; [
