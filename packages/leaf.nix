@@ -2,16 +2,16 @@
 with pkgs;
 rustPlatform.buildRustPackage rec {
   pname = "leaf";
-  version = "1.28.2";
+  version = "1.28.3";
 
   src = fetchFromGitHub {
     owner = "RivoLink";
     repo = "leaf";
     rev = "${version}";
-    sha256 = "sha256-WX9C4gWNPCHWFsHN4xFmShv6dJyYAVgr9xMw5JtoFHI=";
+    sha256 = "sha256-C37w35/PvokDEMaIwgSJ9GtAKkYRi1vNP7BfdTwTFCo=";
   };
 
-  cargoHash = "sha256-T6GH+Y9zBzSOp54shKtboydIZGPSsSKjuexQ3pQ1FqY=";
+  cargoHash = "sha256-OaG6LXKG2kda/Q1/jEBtetUGaX7YC8KwgI+MAd3Q9yg=";
 
   nativeBuildInputs = [ pkg-config ];
 
