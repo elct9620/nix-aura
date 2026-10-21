@@ -53,6 +53,7 @@ with super;
       hugo
       jq
       yq-go
+      visidata # Tabular data explorer
       cloc
       tailspin
       dive
