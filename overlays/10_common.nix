@@ -22,7 +22,6 @@ with super;
       fd
       ripgrep
       vale # Writing linter
-      sumitsubo # Spec-versus-code linter
       # Editor
       vimWithConfig
       # Shell
@@ -31,32 +30,13 @@ with super;
       powerline-go
       zsh-autosuggestions
       zsh-completions
-      # Development
-      allure
-      pkg-config
-      git
-      git-lfs
-      delta # The better diff tool can used by git
-      cloudflared
-      vault
-      upx
-      protobuf
-      cz-cli
-      dive
-      cmake
-      shellcheck
-      bats
-      # Development Dependencies
-      imagemagick
       # Tools
       wget
-      hugo
       jq
       yq-go
       visidataWithTheme # Tabular data explorer
       cloc
       tailspin
-      dive
       mtr
       rclone
       poppler-utils
@@ -65,10 +45,6 @@ with super;
       htop
       tree
       reattach-to-user-namespace
-      # Work
-      jira-cli-go
-      gh
-      glab
       # Utils
       inetutils
       ffmpeg

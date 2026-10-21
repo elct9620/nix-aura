@@ -19,6 +19,9 @@ with super;
       func
       # S3
       minio-client
+      # Secrets & Tunnels
+      vault
+      cloudflared
     ];
  };
 }
