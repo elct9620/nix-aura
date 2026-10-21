@@ -53,7 +53,7 @@ with super;
       hugo
       jq
       yq-go
-      visidata # Tabular data explorer
+      visidataWithTheme # Tabular data explorer
       cloc
       tailspin
       dive
