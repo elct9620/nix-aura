@@ -2,30 +2,19 @@
 with pkgs;
 stdenv.mkDerivation rec {
   pname = "spinel";
-  version = "2026.09.12";
+  version = "2026.10.25";
 
   # The release tarball (`make dist`), not the tag's source archive: it vendors
   # prism and rbs so `make deps` needs no network, and records in .spinel-dist
   # the revision and release a git-less tree cannot derive.
   src = fetchurl {
     url = "https://github.com/matz/spinel/releases/download/${version}/spinel-${version}.tar.xz";
-    hash = "sha256-G7omnPyABLzWC3VHHNROrM3Gbu1gsfY20TZ8iXx2Snc=";
+    hash = "sha256-4TxzYOT4RbSmufNKgPtrgn+VCkgNGqM55ssl5ctho7A=";
   };
 
-  nativeBuildInputs = [ makeWrapper ];
-
-  # This release's Makefile still reads the revision and release from git, so
-  # the build would record "unknown" / "unreleased" -- and spin reads the
-  # revision back as the toolchain key its probe records are stored under,
-  # where "unknown" means no key at all. Mirror upstream 7e938c31, which falls
-  # back to .spinel-dist; drop this once a release ships with that change.
-  postPatch = ''
-    substituteInPlace Makefile \
-      --replace-fail 'git rev-parse --short=12 HEAD 2>/dev/null || echo unknown' \
-                     'git rev-parse --short=12 HEAD 2>/dev/null' \
-      --replace-fail 'case "$$d" in' \
-                     'if [ -z "$$r" ] && [ -f .spinel-dist ]; then r=$$(sed -n 1p .spinel-dist); d=$$(sed -n 2p .spinel-dist); fi; [ -n "$$r" ] || r=unknown; case "$$d" in'
-  '';
+  # The build generates lib/spinel_rt_responds_generated.h with a Ruby script
+  # (tools/gen_respond_to_tables.rb) that the dist tarball does not pre-render.
+  nativeBuildInputs = [ makeWrapper ruby ];
 
   makeFlags = [ "PREFIX=${placeholder "out"}" ];
 
