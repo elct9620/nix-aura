@@ -16,6 +16,7 @@ with super;
       cmake
       shellcheck
       bats
+      gitleaks # Secret scanner
       sumitsubo # Spec-versus-code linter
       hugo
       # Development Dependencies
