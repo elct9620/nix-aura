@@ -31,6 +31,10 @@ in
         nvim-lspconfig
         obsidian-nvim
         mini-pick
+        vim-solarized8
+        vim-airline
+        vim-indent-guides
+        vim-gitgutter
         vim-tmux-navigator
         vim-wakatime
       ];

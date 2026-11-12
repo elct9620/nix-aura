@@ -36,8 +36,11 @@ opt.smartcase = true
 opt.fileencodings = "ucs-bom,utf-8,big5,euc-jp,gbk,euc-kr,utf-16le,latin1"
 opt.completeopt = "menuone,noinsert,noselect,popup"
 
--- Colours follow the terminal's ANSI palette instead of a hard-coded theme.
-opt.termguicolors = false
+-- Same look as the vim setup: flat Solarized over the terminal's background.
+opt.termguicolors = true
+opt.background = "dark"
+vim.g.solarized_termtrans = 1
+pcall(vim.cmd.colorscheme, "solarized8_flat")
 
 -- Keymaps
 local map = vim.keymap.set
