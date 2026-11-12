@@ -28,9 +28,8 @@
 
         pkgs = import nixpkgs {
           inherit system;
-          inherit overlays;
-
-          unstable = pkgs-unstable;
+          # Expose unstable to overlays for packages that must run ahead of stable.
+          overlays = overlays ++ [ (final: prev: { unstable = pkgs-unstable; }) ];
 
           config.allowUnfree = true;
         };

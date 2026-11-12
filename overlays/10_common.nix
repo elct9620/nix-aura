@@ -24,6 +24,7 @@ with super;
       vale # Writing linter
       # Editor
       vimWithConfig
+      neovimWithConfig
       # Shell
       coreutils
       tmuxWithConfig
