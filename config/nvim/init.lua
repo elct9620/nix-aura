@@ -55,8 +55,7 @@ opt.ignorecase = true
 opt.smartcase = true
 
 opt.fileencodings = "ucs-bom,utf-8,big5,euc-jp,gbk,euc-kr,utf-16le,latin1"
--- Item details open in the preview window, closed again once completion ends.
-opt.completeopt = "menuone,noinsert,noselect,preview"
+opt.completeopt = "menuone,noinsert,noselect,popup"
 
 -- Same look as the vim setup: flat Solarized over the terminal's background.
 opt.termguicolors = true
@@ -108,12 +107,6 @@ local group = vim.api.nvim_create_augroup("aura", {})
 
 vim.api.nvim_create_autocmd("WinEnter", { group = group, command = "setlocal cursorline" })
 vim.api.nvim_create_autocmd("WinLeave", { group = group, command = "setlocal nocursorline" })
-vim.api.nvim_create_autocmd("CompleteDone", {
-  group = group,
-  callback = function()
-    if vim.fn.pumvisible() == 0 then vim.cmd("pclose") end
-  end,
-})
 
 -- Strip trailing whitespace, except in Markdown where two trailing spaces are a line break.
 vim.api.nvim_create_autocmd("BufWritePre", {

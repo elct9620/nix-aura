@@ -35,6 +35,7 @@ in
         vim-airline
         vim-indent-guides
         vim-gitgutter
+        nvim-treesitter-endwise # vim-endwise relies on regex syntax, off under tree-sitter
         vim-tmux-navigator
         vim-wakatime
       ];
