@@ -7,12 +7,6 @@ vim.api.nvim_create_autocmd({ "BufReadPre", "BufNewFile" }, {
     local root = vim.fs.root(ev.file, ".obsidian")
     if not root then return end
 
-    -- obsidian.nvim's UI (link and checkbox rendering) needs concealing.
-    vim.api.nvim_create_autocmd("FileType", {
-      pattern = "markdown",
-      command = "setlocal conceallevel=2",
-    })
-
     require("obsidian").setup({
       legacy_commands = false,
       workspaces = { { name = vim.fs.basename(root), path = root } },

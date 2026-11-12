@@ -6,6 +6,13 @@ local servers = {
   terraformls = "terraform-ls",
 }
 
+-- ruby-lsp can answer a semantic tokens request it already acknowledged as
+-- cancelled, which Neovim reports as a red NO_RESULT_CALLBACK_FOUND error.
+-- Its tokens only cover ambiguous syntax, so tree-sitter loses little.
+vim.lsp.config("ruby_lsp", {
+  init_options = { enabledFeatures = { semanticHighlighting = false } },
+})
+
 for name, cmd in pairs(servers) do
   if vim.fn.executable(cmd) == 1 then
     vim.lsp.enable(name)

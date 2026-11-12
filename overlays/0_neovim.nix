@@ -13,6 +13,7 @@ in
     configure = {
       customLuaRC = ''
         vim.opt.runtimepath:prepend("${config}")
+        vim.opt.runtimepath:append("${config}/after")
         dofile("${config}/init.lua")
       '';
       packages.aura.start = with vimPlugins; [
