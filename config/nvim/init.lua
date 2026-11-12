@@ -23,7 +23,28 @@ opt.showtabline = 2
 opt.wildmode = "longest,list"
 opt.synmaxcol = 512
 opt.timeoutlen = 500
-opt.shortmess:append("I")
+opt.history = 1000
+opt.undolevels = 100
+opt.regexpengine = 1
+
+-- UI as vim drew it: terminal's own cursor, vim's fill characters, file info
+-- messages on open, half-screen horizontal jumps, no LSP progress in the cmdline.
+opt.guicursor = ""
+opt.fillchars = "vert:|,fold:-,eob:~,lastline:@"
+opt.display = ""
+opt.shortmess = "I"
+opt.sidescroll = 0
+opt.messagesopt = "hit-enter,history:500"
+
+opt.wildignore = {
+  "*/tmp/*", "*.so", "*.swp", "*.zip",
+  "*.o", "*.obj", "*.pyc",
+  "*.png", "*.jpg", "*.gif", "*.ico",
+  "*.swf", "*.fla",
+  "*.mp3", "*.mp4", "*.avi", "*.mkv",
+  "*.git*", "*.hg*", "*.svn*",
+  "*sass-cache*", "*.DS_Store", "log/**", "tmp/**",
+}
 
 opt.expandtab = true
 opt.tabstop = 2
@@ -34,7 +55,8 @@ opt.ignorecase = true
 opt.smartcase = true
 
 opt.fileencodings = "ucs-bom,utf-8,big5,euc-jp,gbk,euc-kr,utf-16le,latin1"
-opt.completeopt = "menuone,noinsert,noselect,popup"
+-- Item details open in the preview window, closed again once completion ends.
+opt.completeopt = "menuone,noinsert,noselect,preview"
 
 -- Same look as the vim setup: flat Solarized over the terminal's background.
 opt.termguicolors = true
@@ -42,20 +64,28 @@ opt.background = "dark"
 vim.g.solarized_termtrans = 1
 pcall(vim.cmd.colorscheme, "solarized8_flat")
 
+-- Toggle between dark and light Solarized.
+vim.keymap.set("n", "<Leader>bg", function()
+  vim.o.background = vim.o.background == "dark" and "light" or "dark"
+  pcall(vim.cmd.colorscheme, "solarized8_flat")
+end)
+
 -- Keymaps
 local map = vim.keymap.set
 
 -- Enter clears search highlight, except where Enter has a job (quickfix).
-map("n", "<CR>", function()
+local nxo = { "n", "x", "o" }
+
+map(nxo, "<CR>", function()
   if vim.bo.buftype ~= "" then return "<CR>" end
   return "<Cmd>nohlsearch<CR>"
 end, { expr = true })
-map("n", "<C-A>", "ggVG")
-map({ "n", "x", "o" }, "0", "^")
+map(nxo, "<C-A>", "ggVG")
+map(nxo, "0", "^")
 
 -- Tabs
-map("n", "<F7>", "gT")
-map("n", "<F8>", "gt")
+map(nxo, "<F7>", "gT")
+map(nxo, "<F8>", "gt")
 
 -- Indent with Tab
 map("n", "<Tab>", "v>")
@@ -78,6 +108,12 @@ local group = vim.api.nvim_create_augroup("aura", {})
 
 vim.api.nvim_create_autocmd("WinEnter", { group = group, command = "setlocal cursorline" })
 vim.api.nvim_create_autocmd("WinLeave", { group = group, command = "setlocal nocursorline" })
+vim.api.nvim_create_autocmd("CompleteDone", {
+  group = group,
+  callback = function()
+    if vim.fn.pumvisible() == 0 then vim.cmd("pclose") end
+  end,
+})
 
 -- Strip trailing whitespace, except in Markdown where two trailing spaces are a line break.
 vim.api.nvim_create_autocmd("BufWritePre", {
