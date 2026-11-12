@@ -1,8 +1,7 @@
 -- Present LSP diagnostics the way ALE did: ✗/⚠ signs (info shares the warning
--- sign, as in ALE), `# W: message` at the end of the line, and the message of
--- the line under the cursor echoed in the command line.
+-- sign, as in ALE), the message at the end of the line, and the message of the
+-- line under the cursor echoed in the command line.
 local severity = vim.diagnostic.severity
-local letter = { [severity.ERROR] = "E", [severity.WARN] = "W", [severity.INFO] = "I", [severity.HINT] = "H" }
 
 vim.diagnostic.config({
   signs = {
@@ -13,15 +12,7 @@ vim.diagnostic.config({
       [severity.HINT] = "⚠",
     },
   },
-  virtual_text = {
-    spacing = 0,
-    -- Neovim draws one prefix per diagnostic but only the last message;
-    -- prefix just that one so a line reads like ALE's single `# W: message`.
-    prefix = function(diagnostic, i, total)
-      if i ~= total then return "" end
-      return "# " .. letter[diagnostic.severity] .. ":"
-    end,
-  },
+  virtual_text = true,
 })
 
 local echoed = false
