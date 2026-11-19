@@ -4,7 +4,7 @@ let
 in
 stdenv.mkDerivation rec {
   pname = "ruby-build";
-  version = "v20261023";
+  version = "v20261119";
 
   src = fetchFromGitHub {
     owner = "rbenv";
@@ -12,7 +12,7 @@ stdenv.mkDerivation rec {
     rev = "${version}";
     # NOTE:  Calculate sha256
     # make ruby-build
-    sha256 = "sha256-Agoss83m7NI3+xpCHsqaMfjtCfXhuJcyhcBT94R2lIw=";
+    sha256 = "sha256-2lLTtWjSA3WzIAEZ0AD8qseef1MwB1C00GltfkjZRkA=";
   };
 
   nativeBuildInputs = [
