@@ -21,6 +21,7 @@ with super;
       hugo
       # Development Dependencies
       imagemagick
+      android-tools # adb/fastboot for Android device debugging
       # Work
       jira-cli-go
       gh
