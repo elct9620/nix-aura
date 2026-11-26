@@ -26,21 +26,18 @@ let
     };
   };
 
-  # Google's fork of datalayer/jupyter-kernel-client, pinned by the CLI's
-  # uv.lock; not interchangeable with the PyPI release.
+  # Not in nixpkgs; 0.9.0 only ships a wheel on PyPI.
   jupyter-kernel-client = python3Packages.buildPythonPackage rec {
-    pname = "jupyter-kernel-client";
-    version = "0.8.0";
-    pyproject = true;
+    pname = "jupyter_kernel_client";
+    version = "0.9.0";
+    format = "wheel";
 
-    src = fetchFromGitHub {
-      owner = "googlecolab";
-      repo = "jupyter-kernel-client";
-      rev = "f18e982c3265df5e923aa9def101ab3fd737e139";
-      sha256 = "sha256-A2c78qPdY5HIdAmcr1PP3UbtMty84zrNnvZItu7Rk+E=";
+    src = python3Packages.fetchPypi {
+      inherit pname version format;
+      dist = "py3";
+      python = "py3";
+      sha256 = "77acb8f2f738d97625d6bd01ee8cf21c4d59790b7ba464108712db3870416f20";
     };
-
-    build-system = with python3Packages; [ hatchling ];
 
     dependencies = with python3Packages; [
       jupyter-client
@@ -52,18 +49,16 @@ let
       websocket-client
     ];
 
-    doCheck = false;
-
     meta = with lib; {
-      description = "Jupyter Kernel Client through HTTP and WebSocket (Colab fork)";
-      homepage = "https://github.com/googlecolab/jupyter-kernel-client";
+      description = "Jupyter Kernel Client through HTTP and WebSocket";
+      homepage = "https://github.com/datalayer/jupyter-kernel-client";
       license = licenses.bsd3;
     };
   };
 in
 python3Packages.buildPythonApplication rec {
   pname = "google-colab-cli";
-  version = "0.7.2";
+  version = "0.8.0";
   pyproject = true;
 
   src = fetchFromGitHub {
@@ -72,7 +67,7 @@ python3Packages.buildPythonApplication rec {
     rev = "v${version}";
     # NOTE: Calculate sha256
     # make google-colab-cli
-    sha256 = "sha256-wScCy1ykGlyeTGUHi6dMMWjqiG8eq8f1MJZazBPKnpE=";
+    sha256 = "sha256-/sAyxmZNERy56LUlghvN7O/U4oSfQMk1tE70tMpsA+s=";
   };
 
   build-system = with python3Packages; [
@@ -87,6 +82,7 @@ python3Packages.buildPythonApplication rec {
     google-auth-oauthlib
     html2text
     jupyter-kernel-client
+    keyring
     nbformat
     packaging
     prompt-toolkit
