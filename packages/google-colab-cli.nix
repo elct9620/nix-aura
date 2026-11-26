@@ -106,6 +106,24 @@ python3Packages.buildPythonApplication rec {
     "typer"
   ];
 
+  # The wrapped interpreter is a bare python whose site-packages are only
+  # added by the wrapper script, so anything re-launched via `sys.executable`
+  # cannot import colab_cli or pip:
+  # - ssh's ProxyCommand re-launches the CLI; point it at the wrapped entry.
+  # - Self-update would pip-install into the read-only store; updates go
+  #   through nix-aura, so refuse it and keep the banner pointing there.
+  postPatch = ''
+    substituteInPlace src/colab_cli/commands/ssh.py \
+      --replace-fail 'argv = [sys.executable, "-m", "colab_cli.cli"]' \
+                     "argv = [\"$out/bin/colab\"]"
+
+    substituteInPlace src/colab_cli/auto_update.py \
+      --replace-fail 'return f"pip install --upgrade {PYPI_PACKAGE_NAME}"' \
+                     'return "nix-aura /packages-update"' \
+      --replace-fail "typer.echo(f\"[colab] Running: {' '.join(cmd)}\")" \
+                     'raise SystemExit("[colab] Managed by Nix; update it through nix-aura instead.")'
+  '';
+
   doCheck = false;
 
   meta = with lib; {
